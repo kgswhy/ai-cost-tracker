@@ -3,12 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import * as XLSX from "xlsx";
 import { describe, expect, it } from "vitest";
-import { createProjectResolver } from "../src/normalize/project.js";
-import { vendorAImporter } from "../src/importers/vendorA.js";
-import { vendorBImporter } from "../src/importers/vendorB.js";
-import { manualOpsImporter } from "../src/importers/manualOps.js";
-import { fetchAllVendorCUsage } from "../src/importers/vendorC.js";
-import type { ImportContext } from "../src/importers/types.js";
+import { createProjectResolver } from "../src/normalize/project";
+import { vendorAImporter } from "../src/importers/vendorA";
+import { vendorBImporter } from "../src/importers/vendorB";
+import { manualOpsImporter } from "../src/importers/manualOps";
+import { fetchAllVendorCUsage } from "../src/importers/vendorC";
+import type { ImportContext } from "../src/importers/types";
 
 const projects = [
   { code: "GBX-01", name: "Greenbox Garden Benchmark", client: "Greenbox Garden", budgetIdr: 1 },

@@ -1,9 +1,9 @@
 import fs from "node:fs";
-import { parseCsv } from "../normalize/csv.js";
-import { parseUsdAmount, usdToIdr } from "../normalize/money.js";
-import { parseDmyDashUtc } from "../normalize/time.js";
-import type { UsageRecord } from "../types.js";
-import type { ImportContext, ImportOutput, Importer } from "./types.js";
+import { parseCsv } from "../normalize/csv";
+import { parseUsdAmount, usdToIdr } from "../normalize/money";
+import { parseDmyDashUtc } from "../normalize/time";
+import type { UsageRecord } from "../types";
+import type { ImportContext, ImportOutput, Importer } from "./types";
 
 /**
  * Vendor B invoice-line CSV. Amounts are USD with inconsistent formatting.

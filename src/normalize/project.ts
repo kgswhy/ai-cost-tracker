@@ -1,12 +1,12 @@
 import fs from "node:fs";
-import type { Project } from "../types.js";
+import type { Project } from "../types";
 
 export interface ProjectResolver {
   resolve(label: string | null | undefined): string | null;
   projects: Project[];
 }
 
-function normalizeLabel(label: string): string {
+export function normalizeLabel(label: string): string {
   return label.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
@@ -15,7 +15,11 @@ function normalizeLabel(label: string): string {
  * file. Project codes and names from projects.csv always match themselves; the
  * alias file adds the nicknames people actually type.
  */
-export function createProjectResolver(projects: Project[], aliases: Record<string, string[]>): ProjectResolver {
+export function createProjectResolver(
+  projects: Project[],
+  aliases: Record<string, string[]>,
+  userAliases: { label: string; projectCode: string }[] = [],
+): ProjectResolver {
   const lookup = new Map<string, string>();
   const codes = new Set(projects.map((p) => p.code));
 
@@ -34,6 +38,12 @@ export function createProjectResolver(projects: Project[], aliases: Record<strin
       }
       lookup.set(key, code);
     }
+  }
+
+  // Aliases added from the dashboard override the config file.
+  for (const a of userAliases) {
+    if (!codes.has(a.projectCode)) throw new Error(`Alias "${a.label}" points at unknown project ${a.projectCode}`);
+    lookup.set(normalizeLabel(a.label), a.projectCode);
   }
 
   return {

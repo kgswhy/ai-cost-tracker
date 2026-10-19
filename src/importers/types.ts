@@ -1,5 +1,5 @@
-import type { ProjectResolver } from "../normalize/project.js";
-import type { Rates, UsageRecord } from "../types.js";
+import type { ProjectResolver } from "../normalize/project";
+import type { Rates, UsageRecord } from "../types";
 
 export interface ImportContext {
   rates: Rates;

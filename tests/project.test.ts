@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createProjectResolver } from "../src/normalize/project.js";
+import { createProjectResolver } from "../src/normalize/project";
 
 const projects = [
   { code: "KMD-02", name: "Kopi Malam Mini Drama S1", client: "Kopi Malam", budgetIdr: 1 },

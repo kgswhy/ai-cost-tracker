@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+/* Neutral base, one action colour, three state colours. Nothing else is coloured. */
+@theme {
+  --color-ink: #1c1917;
+  --color-ink-muted: #57534e;
+  --color-line: #e7e5e4;
+  --color-paper: #fafaf9;
+  --color-card: #ffffff;
+  --color-action: #1e3a8a;
+  --color-action-ink: #ffffff;
+  --color-ok: #15803d;
+  --color-ok-bg: #dcfce7;
+  --color-warn: #b45309;
+  --color-warn-bg: #fef3c7;
+  --color-over: #b91c1c;
+  --color-over-bg: #fee2e2;
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+}
+
+html { font-variant-numeric: tabular-nums; }
+body { background: var(--color-paper); color: var(--color-ink); }
+
+:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }

@@ -8,26 +8,35 @@
     "node": ">=20.11"
   },
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "mock:vendor-c": "node vendor-c-mock/server.js",
+    "mock:webhook": "node tools/mock-webhook.mjs",
     "import": "tsx src/cli/import.ts",
     "alerts": "tsx src/cli/alerts.ts",
-    "mock:webhook": "node tools/mock-webhook.mjs",
-    "dev": "tsx watch src/web/server.ts",
-    "start": "tsx src/web/server.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
     "dotenv": "^18.0.8",
-    "fastify": "^5.12.7",
+    "next": "^15.5.28",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "recharts": "^2.15.4",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "postcss": "^8.5.31",
+    "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2",
+    "typescript": "^5.9.3",
     "vitest": "^5.0.5"
   }
 }

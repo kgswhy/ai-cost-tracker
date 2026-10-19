@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDmyDashUtc, parseIsoUtc, parseManualDateWib, parseUsSlashUtc, toWibDate, toWibString, toWibWeekStart } from "../src/normalize/time.js";
+import { parseDmyDashUtc, parseIsoUtc, parseManualDateWib, parseUsSlashUtc, toWibDate, toWibString, toWibWeekStart } from "../src/normalize/time";
 
 describe("vendor timestamp formats", () => {
   it("Vendor A uses MM/DD/YYYY HH:MM in UTC", () => {

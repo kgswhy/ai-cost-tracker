@@ -1,6 +1,6 @@
-import type { Db } from "../db/index.js";
-import { projectSpend, type ProjectSpend } from "../db/queries.js";
-import { formatIdr } from "../normalize/money.js";
+import type { Db } from "../db/index";
+import { projectSpend, type ProjectSpend } from "../db/queries";
+import { formatIdr } from "../normalize/money";
 
 export interface BudgetAlert {
   projectCode: string;

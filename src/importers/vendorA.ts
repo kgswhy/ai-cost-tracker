@@ -1,9 +1,9 @@
 import fs from "node:fs";
-import { parseCsv } from "../normalize/csv.js";
-import { creditsToIdr } from "../normalize/money.js";
-import { parseUsSlashUtc } from "../normalize/time.js";
-import type { UsageRecord } from "../types.js";
-import type { ImportContext, ImportOutput, Importer } from "./types.js";
+import { parseCsv } from "../normalize/csv";
+import { creditsToIdr } from "../normalize/money";
+import { parseUsSlashUtc } from "../normalize/time";
+import type { UsageRecord } from "../types";
+import type { ImportContext, ImportOutput, Importer } from "./types";
 
 /**
  * Vendor A CSV export. Amounts are credits. Refund rows carry a negative

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { openDatabase, upsertProjects, upsertUsageRecords } from "../src/db/index.js";
-import { projectSpend, totals } from "../src/db/queries.js";
-import { pendingAlerts, runBudgetAlerts, type AlertSender, type BudgetAlert } from "../src/alerts/index.js";
-import type { UsageRecord } from "../src/types.js";
+import { openDatabase, upsertProjects, upsertUsageRecords } from "../src/db/index";
+import { projectSpend, totals } from "../src/db/queries";
+import { pendingAlerts, runBudgetAlerts, type AlertSender, type BudgetAlert } from "../src/alerts/index";
+import type { UsageRecord } from "../src/types";
 
 const projects = [
   { code: "GBX-01", name: "Greenbox", client: "Greenbox", budgetIdr: 1_000_000 },
@@ -99,7 +99,7 @@ describe("budget alerts", () => {
 
 describe("full-snapshot sources", () => {
   it("drops records that disappeared from the source on the next run", async () => {
-    const { runImport } = await import("../src/importers/index.js");
+    const { runImport } = await import("../src/importers/index");
     const db = openDatabase(":memory:");
     let batch = [rec({ source: "manual_ops", externalId: "row-1" }), rec({ source: "manual_ops", externalId: "row-2" })];
     const importer = { source: "manual_ops" as const, label: "sheet", fullSnapshot: true, run: async () => ({ records: batch, fetched: batch.length, skipped: 0 }) };

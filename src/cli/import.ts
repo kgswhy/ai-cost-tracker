@@ -1,8 +1,8 @@
-import { runImport } from "../importers/index.js";
-import { config } from "../config.js";
-import { openDatabase } from "../db/index.js";
-import { formatAlertMessage } from "../alerts/index.js";
-import { runConfiguredAlerts } from "../alerts/run.js";
+import { runImport } from "../importers/index";
+import { config } from "../config";
+import { openDatabase } from "../db/index";
+import { formatAlertMessage } from "../alerts/index";
+import { runConfiguredAlerts } from "../alerts/run";
 
 const only = process.argv.slice(2).filter((a) => !a.startsWith("-"));
 const verbose = process.argv.includes("--verbose") || process.argv.includes("-v");
