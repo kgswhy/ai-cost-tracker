@@ -1,7 +1,7 @@
 import { getDb } from "@/src/db/connection";
 import { config } from "@/src/config";
 import {
-  allRecords, importRunHistory, latestImportRuns, latestWeekStart, projectRecords, projectSpend, projectWeekly, recentAlerts, totals,
+  allRecords, importRunHistory, latestImportRuns, latestRecordWib, latestWeekStart, projectRecords, projectSpend, projectWeekly, recentAlerts, totals,
   unassignedGroups, unassignedRecords, vendorByProject, vendorSpend, weeklySpend,
 } from "@/src/db/queries";
 import { computePace, type Pace } from "@/src/analysis/pace";
@@ -25,15 +25,30 @@ export function dashboardData() {
     .filter((r) => verdicts.get(r)?.isOutlier)
     .map((r) => ({ ...r, verdict: verdicts.get(r)! }))
     .sort((a, b) => b.amountIdr - a.amountIdr);
+  const importRuns = latestImportRuns(db);
+  const groups = unassignedGroups(db);
+  const webhook = Boolean(config.alerts.webhookUrl);
+  const checklist = {
+    lastImportAt: importRuns.length ? importRuns.map((r) => r.startedAt).sort().at(-1)! : null,
+    sourcesOk: importRuns.filter((r) => r.status === "ok").length,
+    sourcesFailed: importRuns.filter((r) => r.status !== "ok").map((r) => r.source),
+    sourcesTotal: 4,
+    newestRecordWib: latestRecordWib(db),
+    labelsWaiting: groups.length,
+    webhookConfigured: webhook,
+    alertsPending: pendingAlerts(db, config.alerts.thresholds, webhook).length,
+    alertsSent: recentAlerts(db).length,
+  };
   return {
     totals: totals(db),
     projects,
     outliers,
+    checklist,
     vendors: vendorSpend(db),
     vendorByProject: vendorByProject(db),
     weekly,
     unassignedCount: unassignedRecords(db).length,
-    importRuns: latestImportRuns(db),
+    importRuns,
     alerts: recentAlerts(db),
     thresholds: config.alerts.thresholds,
   };

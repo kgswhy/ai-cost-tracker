@@ -71,7 +71,7 @@ export async function linkLabelAction(_prev: ActionResult | null, form: FormData
   for (const p of ["/", "/import", "/alerts"]) revalidatePath(p);
   revalidatePath("/projects/[code]", "page");
   const details = alerts.sent.map((a) => "Alert sent: " + formatAlertMessage(a).replace(/\n/g, ", "));
-  return { ok: true, message: `"${label}" now means ${projectCode}. ${moved} record(s) moved. It leaves this list on the next visit.`, details };
+  return { ok: true, message: `"${label}" now means ${projectCode}. ${moved} transaction(s) moved. It leaves this list on the next visit.`, details };
 }
 
 export async function checkAlertsAction(): Promise<ActionResult> {

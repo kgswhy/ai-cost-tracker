@@ -147,3 +147,9 @@ export function allRecords(db: Db, projectCode?: string): ExportRow[] {
      FROM usage_records WHERE (@code IS NULL OR project_code = @code) ORDER BY occurred_at_utc DESC`,
   ).all({ code: projectCode ?? null }) as ExportRow[];
 }
+
+/** WIB timestamp of the newest transaction, or null when the table is empty. */
+export function latestRecordWib(db: Db): string | null {
+  const row = db.prepare(`SELECT MAX(occurred_at_wib) AS t FROM usage_records`).get() as { t: string | null };
+  return row.t;
+}

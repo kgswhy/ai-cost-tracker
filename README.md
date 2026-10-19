@@ -31,7 +31,7 @@ Then open http://localhost:3000/import and press **Run import now**. For product
 The navigation follows the order the ops team works in:
 
 1. **Import.** Shows which file each source reads: the bundled sample from `data/`, or the latest file uploaded on this page. Upload this week's Vendor A and Vendor B exports and the ops sheet, then run the import. Vendor C is pulled from its API. Every run is logged per source with what it inserted, updated, left unchanged, skipped and why.
-2. **Review labels.** Records whose project label matched nothing are grouped by the label as typed, with amount and sources. Pick the project once; the alias is stored, every record with that label moves immediately, and future imports use it too. Blank labels cannot be linked and are marked "fix at the source".
+2. **Review names.** Records whose project label matched nothing are grouped by the label as typed, with amount and sources. Pick the project once; the alias is stored, every record with that label moves immediately, and future imports use it too. Blank labels cannot be linked and are marked "fix at the source".
 3. **Dashboard.** Spend vs budget per project, most urgent first, with the budget bar, status and an "at this pace" projection (a straight line from the average of the last four weeks of data: how many weeks until the budget runs out, or how far over it already is). Spend by tool/vendor, weekly spend, and a "needs attention" panel linking to projects above a threshold, to unlinked records, and to unusually large charges (at least 8 times the median for the same vendor and item, so a video render is never compared with an image job). Each project opens a detail page with its pace, vendor split, weekly spend and every record, refunds and flagged charges included. Every table of records can be downloaded as CSV for finance, all projects or one.
 4. **Alerts.** Thresholds and delivery target, projects currently above a threshold, a manual "check and send", and the history of what the webhook received.
 
@@ -120,7 +120,7 @@ Idempotency comes from a natural key, `UNIQUE(source, external_id)`. Vendors A, 
 
 The ops sheet is treated as a full snapshot: rows edited or deleted in the sheet disappear from the database on the next import. Vendor exports are append-only feeds and are never pruned.
 
-Project aliases start in a config file and grow from the Review page. People type `kmd02`, `KMD 02`, `Kopi Malam` and `kopi malam drama`; all of them map to KMD-02. A label nobody anticipated is linked once from the dashboard, stored in `project_aliases`, and wins over the config file. Unknown labels stay in the database with no project rather than being guessed. The resolver refuses an alias claimed by two projects.
+Project aliases start in a config file and grow from the Review names page. People type `kmd02`, `KMD 02`, `Kopi Malam` and `kopi malam drama`; all of them map to KMD-02. A label nobody anticipated is linked once from the dashboard, stored in `project_aliases`, and wins over the config file. Unknown labels stay in the database with no project rather than being guessed. The resolver refuses an alias claimed by two projects.
 
 Uploads replace the bundled sample per source and live in `data/uploads/` (git-ignored). The importer does not care where the file came from, so the CLI and the app read the same thing.
 
@@ -132,7 +132,7 @@ Money is integer IDR. Each record is converted and rounded on its own, so every 
 
 ### Interface design
 
-The pages are deliberately plain: an internal tool the ops team reads every day should look like a report, not a product. The navigation is the weekly flow in order. The budget bar is the recurring visual element, and colour appears only where it carries state: green, amber and red for budget status, one blue for the single primary action on a page. Charts use one fixed hue per project across the whole site, and each chart has a table beneath it with the same numbers for screen readers and for when the chart cannot render.
+The pages are deliberately plain: an internal tool the ops team reads every day should look like a report, not a product. The navigation is the weekly flow in order, and the dashboard opens with that same flow as a four-step checklist whose lines show live state (last import and how fresh the newest transaction is, names waiting to be linked, projects over a threshold and unusual charges, alerts pending or sent), so a new person knows what to do next without reading this file. Copy uses the team's words: transactions, not records; project names and nicknames, not labels and aliases; a Discord or Slack channel, not a webhook, except where the developer has to act. The budget bar is the recurring visual element, and colour appears only where it carries state: green, amber and red for budget status, one blue for the single primary action on a page. Charts use one fixed hue per project across the whole site, and each chart has a table beneath it with the same numbers for screen readers and for when the chart cannot render.
 
 IBM Plex Sans is the typeface because every number on these pages sits in a column and Plex has tabular figures and a report-like tone. The app ships in light mode only; it is used on office laptops in daylight and a single theme is one theme to verify.
 
@@ -143,7 +143,7 @@ Things the brief left open, and what I decided:
 1. Refunds reduce spend. Vendor A refund rows (negative credits with `ref_transaction_id`) are imported as negative records, so budgets reflect net spend and the audit trail keeps both lines.
 2. The "Vendor A" rows in the manual sheet are copies, not extra spend. Every one of them matches a `vendor_a.csv` transaction, by TXN ref where present and otherwise by credits × 160 and date. They are skipped; the CSV is the source of truth for Vendor A. The other vendors in the sheet (Tool D, Stock Footage, Stock Music, Freelance VO) have no other feed and are imported.
 3. Manual-sheet dates are WIB calendar days. The team types them locally, and the rows with a TXN ref confirm it where the UTC time crosses midnight. They are stored as midnight WIB. Vendor timestamps are UTC, as their headers say.
-4. `rnd`, `R&D` and `Internal` mean INT-00 (Internal R&D). `sandbox`, `test`, `misc`, `new client pitch` and blank labels do not clearly belong to a project and are left for the ops team to link on the Review page rather than guessed.
+4. `rnd`, `R&D` and `Internal` mean INT-00 (Internal R&D). `sandbox`, `test`, `misc`, `new client pitch` and blank labels do not clearly belong to a project and are left for the ops team to link on the Review names page rather than guessed.
 5. A repeated Vendor B `line_id` is the same charge. Four lines appear twice, byte for byte, and are imported once.
 6. A repeated invoice number in the sheet is the same expense. There are two cases, such as INV-913 typed twice with different formatting.
 7. Weeks start on Monday, in WIB.

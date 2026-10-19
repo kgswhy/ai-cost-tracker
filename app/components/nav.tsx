@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 // The order is the weekly flow: bring data in, fix what did not link, read the numbers, see what was sent.
 const ITEMS = [
   { href: "/import", label: "Import" },
-  { href: "/review", label: "Review labels" },
+  { href: "/review", label: "Review names" },
   { href: "/", label: "Dashboard" },
   { href: "/alerts", label: "Alerts" },
 ];
