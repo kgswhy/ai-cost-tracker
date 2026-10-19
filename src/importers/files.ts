@@ -10,6 +10,11 @@ export const SOURCE_FILES: Record<FileSource, { bundled: string; accept: string[
   manual_ops: { bundled: "manual_ops.xlsx", accept: [".xlsx"], label: "Spreadsheet manual (XLSX)" },
 };
 
+/** True only for the three own keys, so "toString" or "constructor" from a crafted request is rejected. */
+export function isFileSource(value: unknown): value is FileSource {
+  return typeof value === "string" && Object.hasOwn(SOURCE_FILES, value);
+}
+
 export interface ResolvedFile {
   path: string;
   origin: "uploaded" | "bundled";
@@ -33,6 +38,7 @@ export function resolveSourceFile(source: FileSource): ResolvedFile {
 }
 
 export function saveUpload(source: FileSource, originalName: string, bytes: Buffer): ResolvedFile {
+  if (!isFileSource(source)) throw new Error(`Unknown source "${String(source)}"`);
   const meta = SOURCE_FILES[source];
   const ext = path.extname(originalName).toLowerCase();
   if (!meta.accept.includes(ext)) throw new Error(`${meta.label} must be ${meta.accept.join(" or ")}, got "${originalName}"`);
@@ -45,6 +51,7 @@ export function saveUpload(source: FileSource, originalName: string, bytes: Buff
 }
 
 export function discardUpload(source: FileSource): void {
+  if (!isFileSource(source)) throw new Error(`Unknown source "${String(source)}"`);
   const target = path.join(config.uploadsDir, SOURCE_FILES[source].bundled);
   for (const f of [target, target + ".name"]) if (fs.existsSync(f)) fs.unlinkSync(f);
 }

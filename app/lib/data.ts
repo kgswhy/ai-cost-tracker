@@ -1,7 +1,8 @@
+import { cache } from "react";
 import { getDb } from "@/src/db/connection";
 import { config } from "@/src/config";
 import {
-  allRecords, importRunHistory, latestImportRuns, latestRecordWib, latestWeekStart, projectRecords, projectSpend, projectWeekly,
+  allRecords, earliestRecordWib, importRunHistory, latestImportRuns, latestRecordWib, latestWeekStart, projectRecords, projectSpend, projectWeekly,
   recentAlerts, totals, unassignedGroups, unassignedRecords, vendorSpend, weeklySpend, type ExportRow,
 } from "@/src/db/queries";
 import { computePace } from "@/src/analysis/pace";
@@ -16,15 +17,18 @@ import { detectProvider, maskWebhookUrl } from "@/src/alerts/webhook";
 
 export type Outlier = ExportRow & { verdict: OutlierVerdict };
 
-/** Charges at least 8x the usual amount for their vendor and item, biggest first. */
-function outliersOf(db: Db): Outlier[] {
+/**
+ * Charges at least 8x the usual amount for their vendor and item, biggest first.
+ * The sidebar and the page both need this, so it is computed once per request.
+ */
+const outliersOf = cache((db: Db): Outlier[] => {
   const records = allRecords(db);
   const verdicts = findOutliers(records);
   return records
     .filter((r) => verdicts.get(r)?.isOutlier)
     .map((r) => ({ ...r, verdict: verdicts.get(r)! }))
     .sort((a, b) => b.amountIdr - a.amountIdr);
-}
+});
 
 /** Unlinked names nobody has looked at yet: reviewed ones ("not a project") drop off the list. */
 function waitingGroups(db: Db) {
@@ -88,10 +92,9 @@ export function dashboardData() {
   for (const w of weeklySpend(db)) weekTotals.set(w.weekStart, (weekTotals.get(w.weekStart) ?? 0) + w.spendIdr);
 
   const groups = waitingGroups(db).filter((g) => g.label.trim() !== "");
-  const records = allRecords(db);
   return {
     hasData: t.recordCount > 0,
-    firstDay: records.length ? records.map((r) => r.occurredAtWib).sort()[0] : null,
+    firstDay: earliestRecordWib(db),
     lastDay: latestRecordWib(db),
     totals: { ...t, projectSpendIdr },
     projects,
@@ -158,8 +161,9 @@ export function alertsPageData(selected?: string) {
   const db = getDb();
   const hook = configuredWebhook(db);
   const webhook = hook?.url ?? "";
+  const projects = new Map(projectSpend(db).map((p) => [p.code, p]));
   const sent = recentAlerts(db).map((a) => {
-    const p = projectSpend(db).find((x) => x.code === a.projectCode);
+    const p = projects.get(a.projectCode);
     const message = formatAlertMessage({
       projectCode: a.projectCode, projectName: p?.name ?? a.projectCode, client: p?.client ?? "", thresholdPct: a.thresholdPct,
       spendIdr: a.spendIdr, budgetIdr: a.budgetIdr, pctUsed: a.pctUsed,

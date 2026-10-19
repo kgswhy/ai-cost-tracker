@@ -89,12 +89,19 @@ export async function runBudgetAlerts(db: Db, opts: { thresholds: number[]; send
     for (const a of pending) if ((top.get(a.projectCode)?.thresholdPct ?? -1) < a.thresholdPct) top.set(a.projectCode, a);
     return { ...result, sent: [...top.values()] };
   }
-  const record = db.prepare(
+  // Claim the row before the network call: two runs at once (two people pressing import) both
+  // see the same pending list, and only the one whose claim lands may send. A console-only row
+  // can be re-claimed once a webhook exists; anything else already belongs to another run.
+  const claim = db.prepare(
     `INSERT INTO budget_alerts (project_code, threshold_pct, spend_idr, budget_idr, pct_used, delivery, sent_at)
-     VALUES (@projectCode, @thresholdPct, @spendIdr, @budgetIdr, @pctUsed, @delivery, @sentAt)
+     VALUES (@projectCode, @thresholdPct, @spendIdr, @budgetIdr, @pctUsed, 'sending', @sentAt)
      ON CONFLICT(project_code, threshold_pct) DO UPDATE SET spend_idr = excluded.spend_idr, budget_idr = excluded.budget_idr,
-       pct_used = excluded.pct_used, delivery = excluded.delivery, sent_at = excluded.sent_at`,
+       pct_used = excluded.pct_used, delivery = 'sending', sent_at = excluded.sent_at
+     WHERE budget_alerts.delivery = 'console'`,
   );
+  const settle = db.prepare(`UPDATE budget_alerts SET delivery = @delivery, sent_at = @sentAt WHERE project_code = @projectCode AND threshold_pct = @thresholdPct AND delivery = 'sending'`);
+  const release = db.prepare(`DELETE FROM budget_alerts WHERE project_code = @projectCode AND threshold_pct = @thresholdPct AND delivery = 'sending'`);
+
   // A project that crosses several thresholds in one run gets one message,
   // for the highest threshold; the lower ones are recorded as covered by it.
   const byProject = new Map<string, BudgetAlert[]>();
@@ -102,12 +109,20 @@ export async function runBudgetAlerts(db: Db, opts: { thresholds: number[]; send
   for (const group of byProject.values()) {
     group.sort((a, b) => b.thresholdPct - a.thresholdPct);
     const top = group[0];
+    const claimed = db.transaction(() => group.filter((a) => claim.run({ ...a, sentAt: new Date().toISOString() }).changes > 0))();
+    if (!claimed.includes(top)) {
+      // Another run owns this project's top threshold and will record it; hand back anything claimed here.
+      for (const a of claimed) release.run(a);
+      continue;
+    }
     try {
       const delivery = await opts.sender.send(top);
       const sentAt = new Date().toISOString();
-      for (const a of group) record.run({ ...a, delivery, sentAt });
+      for (const a of claimed) settle.run({ ...a, delivery, sentAt });
       result.sent.push(top);
     } catch (err) {
+      // Not delivered: give the claim back so the next run tries again.
+      for (const a of claimed) release.run(a);
       result.failed.push({ alert: top, error: err instanceof Error ? err.message : String(err) });
     }
   }

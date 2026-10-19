@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/src/db/connection";
 import { addUserAlias, markLabelReviewed, relinkRecords } from "@/src/db/index";
 import { loadReferenceData, runImport, type SourceSummary } from "@/src/importers/index";
-import { discardUpload, saveUpload, SOURCE_FILES, type FileSource } from "@/src/importers/files";
+import { discardUpload, isFileSource, saveUpload, SOURCE_FILES, type FileSource } from "@/src/importers/files";
 import { runConfiguredAlerts } from "@/src/alerts/run";
 import { resetAlerts, type BudgetAlert } from "@/src/alerts/index";
 import { normalizeLabel } from "@/src/normalize/project";
@@ -43,9 +43,9 @@ export async function runImportAction(): Promise<ActionResult> {
 }
 
 export async function uploadAction(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const source = String(form.get("source")) as FileSource;
+  const source = String(form.get("source"));
   const file = form.get("file");
-  if (!(source in SOURCE_FILES)) return { ok: false, message: "Sumber tidak dikenal." };
+  if (!isFileSource(source)) return { ok: false, message: "Sumber tidak dikenal." };
   if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Pilih file dulu." };
   try {
     const saved = saveUpload(source, file.name, Buffer.from(await file.arrayBuffer()));
@@ -57,6 +57,8 @@ export async function uploadAction(_prev: ActionResult | null, form: FormData): 
 }
 
 export async function discardUploadAction(source: FileSource): Promise<ActionResult> {
+  // Server actions are public endpoints: the bound argument can be anything a client sends.
+  if (!isFileSource(source)) return { ok: false, message: "Sumber tidak dikenal." };
   discardUpload(source);
   refresh();
   return { ok: true, message: `Kembali ke file contoh ${SOURCE_FILES[source].bundled}. Jalankan import untuk memuatnya lagi.` };

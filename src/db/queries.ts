@@ -148,6 +148,12 @@ export function allRecords(db: Db, projectCode?: string): ExportRow[] {
   ).all({ code: projectCode ?? null }) as ExportRow[];
 }
 
+/** WIB timestamp of the oldest transaction, or null when the table is empty. */
+export function earliestRecordWib(db: Db): string | null {
+  const row = db.prepare(`SELECT MIN(occurred_at_wib) AS t FROM usage_records`).get() as { t: string | null };
+  return row.t;
+}
+
 /** WIB timestamp of the newest transaction, or null when the table is empty. */
 export function latestRecordWib(db: Db): string | null {
   const row = db.prepare(`SELECT MAX(occurred_at_wib) AS t FROM usage_records`).get() as { t: string | null };

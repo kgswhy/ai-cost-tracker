@@ -68,7 +68,11 @@ Budget terpakai: 86,0%
 | `https://discord.com/api/webhooks/...` | Discord: `{ "content", "username", "allowed_mentions": { "parse": [] } }`, first line bold, no one pinged |
 | anything else (a mock, another service) | `{ "content", "text", "alert" }` with the structured alert |
 
-A URL saved on the page is stored in the local database and wins over `.env`; removing it falls back to `.env`. The page only ever shows the host and the last four characters, never the full URL, because a webhook URL works like a password. **Kirim pesan uji** posts a test message so the team can see it arrive before the first real alert. Slack and Discord payloads are covered by unit tests; they have not been tried against a live workspace from this repo.
+A URL saved on the page is stored in the local database and wins over `.env`; removing it falls back to `.env`. The page only ever shows the host and the last four characters, never the full URL, because a webhook URL works like a password. **Kirim pesan uji** posts a test message so the team can see it arrive before the first real alert. The Slack format has been checked against a real workspace; Discord is covered by unit tests.
+
+Because the app has no login, the page accepts only `https://hooks.slack.com/services/...` and `https://discord.com/api/webhooks/...` (no other hosts, ports or credentials in the URL), so it cannot be used to make the server call an internal address. A mock or any other endpoint is set by the developer in `ALERT_WEBHOOK_URL`. Every delivery times out after 10 seconds so a slow endpoint cannot hang an import, redirects are refused, and error responses are shown only for Slack and Discord.
+
+Each alert row is claimed in the database before the message goes out, so two imports or checks running at the same moment cannot send the same alert twice; a failed delivery gives the claim back and the next run retries it.
 
 Alerts are evaluated automatically at the end of every import and after a name is linked, from the Budget alert page, or from the command line:
 
@@ -139,11 +143,13 @@ Every importer produces the same `UsageRecord` shape. An importer's only job is 
 
 Idempotency comes from a natural key, `UNIQUE(source, external_id)`. Vendors A, B and C ship stable ids. The spreadsheet has none, so its id is a hash of WIB date, resolved project, vendor, invoice number and amount. A record that changes at the source (a corrected amount, a new alias) updates in place, and every run reports inserted, updated and unchanged counts so a re-run is visibly a no-op.
 
-The ops sheet is treated as a full snapshot: rows edited or deleted in the sheet disappear from the database on the next import. Vendor exports are append-only feeds and are never pruned.
+The ops sheet is treated as a full snapshot: rows edited or deleted in the sheet disappear from the database on the next import. A sheet that yields no rows at all is refused instead, so uploading the wrong file or a blank template cannot wipe the manual spend. Vendor exports are append-only feeds and are never pruned.
 
 Project aliases start in a config file and grow from the Nama tak dikenal page. People type `kmd02`, `KMD 02`, `Kopi Malam` and `kopi malam drama`; all of them map to KMD-02. A label nobody anticipated is linked once from the dashboard, stored in `project_aliases`, and wins over the config file. Unknown labels stay in the database with no project rather than being guessed. The resolver refuses an alias claimed by two projects.
 
-Uploads replace the bundled sample per source and live in `data/uploads/` (git-ignored). The importer does not care where the file came from, so the CLI and the app read the same thing.
+Uploads replace the bundled sample per source and live in `data/uploads/` (git-ignored). The importer does not care where the file came from, so the CLI and the app read the same thing. Spreadsheets are parsed with SheetJS 0.20.3 installed from the SheetJS CDN, because the npm `xlsx` package stopped at 0.18.5, which has a prototype-pollution and a ReDoS advisory and would be parsing files anyone can upload. The CSV export prefixes text that starts with `=`, `+`, `-` or `@` with an apostrophe, since project names are typed by people and finance opens the file in a spreadsheet.
+
+Paths resolve from the repository, not from the folder a command is started in, so `tsx /path/to/src/cli/import.ts` works from cron or any terminal. `COST_TRACKER_ROOT` overrides it.
 
 Alerts keep state and run after every import and after every label link. Each threshold crossing is recorded once; a project that passes 80% and 100% in the same run gets a single message for the highest. A failed delivery is not recorded, so it retries on the next run.
 
@@ -189,7 +195,8 @@ Things the brief left open, and what I decided:
 - Spreadsheet identity is content-based. Editing a sheet row changes its id; the snapshot pruning removes the old row, but alert history and `first_seen_at` for that row start over. The fix is an id column in the sheet, or better, a small form on the dashboard that writes straight to the database so the sheet goes away.
 - Schema migrations are `CREATE TABLE IF NOT EXISTS` plus one additive column check. Fine for a fresh file; a real deployment would use a migration tool.
 - Rates are fixed. Real invoices arrive in USD at a date-specific rate; the model keeps the original amount and currency so dated rates can be applied later.
-- There is no authentication. The app is meant for an internal network; add SSO or at least basic auth before exposing it. Without it, anyone who can open the app can also change where budget alerts are sent. Uploads are validated by extension and parsed by the same strict importers, but a hostile file is not something the current checks are designed for.
+- There is no authentication. The app is meant for an internal network; add SSO or at least basic auth before exposing it. Without it, anyone who can open the app can also change where budget alerts are sent.
+- `npm audit` reports PostCSS inside Next.js 15. PostCSS only processes this repository's own CSS at build time, never user input; the fix needs Next 16, a breaking upgrade left for later. Uploads are validated by extension and parsed by the same strict importers, but a hostile file is not something the current checks are designed for.
 - Alerts only fire upward. There is no "back under budget" notice, no digest, and no per-project threshold overrides.
 - Import runs inside the web process. That is fine for a few hundred records; with more sources it should move to a scheduled job, with the app only reading results.
 - Outliers are flagged, not resolved. Marking a charge as "checked, it is real" or "disputed with the vendor" would need a small table and a form; today the list just stays until the data changes.

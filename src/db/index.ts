@@ -133,6 +133,10 @@ export function upsertUsageRecords(db: Db, records: UsageRecord[]): UpsertStats 
   return stats;
 }
 
+export function countRecords(db: Db, source: string): number {
+  return (db.prepare(`SELECT COUNT(*) AS n FROM usage_records WHERE source = ?`).get(source) as { n: number }).n;
+}
+
 /** Deletes records of `source` whose external id is not in `keep`. Used for full-snapshot sources. */
 export function removeStaleRecords(db: Db, source: string, keep: string[]): number {
   const keepSet = new Set(keep);
