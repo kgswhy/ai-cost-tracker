@@ -47,21 +47,21 @@ function toAlert(p: ProjectSpend, thresholdPct: number): BudgetAlert {
   };
 }
 
+/** The message the webhook receives: project, current spend, budget and percentage used, in the ops team's language. */
 export function formatAlertMessage(a: BudgetAlert): string {
-  // The glyph is the only severity cue in a chat feed, where the message has no colour.
-  const head = a.thresholdPct >= 100 ? `🚨 Budget exceeded (${a.thresholdPct}%)` : `⚠️ Budget warning (${a.thresholdPct}%)`;
+  const head = a.thresholdPct >= 100 ? `Lewat budget (${a.thresholdPct}%)` : `Peringatan budget (${a.thresholdPct}%)`;
   return [
     `${head}: ${a.projectCode} ${a.projectName} (${a.client})`,
-    `Spend: ${formatIdr(a.spendIdr)}`,
+    `Spend saat ini: ${formatIdr(a.spendIdr)}`,
     `Budget: ${formatIdr(a.budgetIdr)}`,
-    `Used: ${a.pctUsed.toFixed(1)}%`,
+    `Budget terpakai: ${a.pctUsed.toFixed(1).replace(".", ",")}%`,
   ].join("\n");
 }
 
 /**
- * Posts to a JSON webhook. The body carries `content` (Discord) and `text`
- * (Slack) with the same message, plus a structured `alert` object for a mock
- * endpoint or any other consumer.
+ * Posts to a JSON webhook. The same text goes in `content` and `text`, the two
+ * field names common chat webhooks read, plus a structured `alert` object for
+ * a mock endpoint or any other consumer.
  */
 export function webhookSender(url: string, fetchImpl: typeof fetch = fetch): AlertSender {
   return {

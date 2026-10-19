@@ -24,16 +24,19 @@ npm run mock:vendor-c       # the provided Vendor C mock on http://localhost:401
 npm run dev                 # the app on http://localhost:3000
 ```
 
-Then open http://localhost:3000/import and press **Run import now**. For production use `npm run build && npm start`.
+Then open http://localhost:3000/import and press **Jalankan import**. For production use `npm run build && npm start`.
 
 ### The weekly flow
 
-The navigation follows the order the ops team works in:
+The interface is in Indonesian, the ops team's working language (their own spreadsheet is "Rekap Biaya Produksi", with "Tanggal" and "Nominal" columns). A sidebar holds the **Dashboard** and the weekly routine in order, plus every project with its budget percentage:
 
-1. **Import.** Shows which file each source reads: the bundled sample from `data/`, or the latest file uploaded on this page. Upload this week's Vendor A and Vendor B exports and the ops sheet, then run the import. Vendor C is pulled from its API. Every run is logged per source with what it inserted, updated, left unchanged, skipped and why.
-2. **Review names.** Records whose project label matched nothing are grouped by the label as typed, with amount and sources. Pick the project once; the alias is stored, every record with that label moves immediately, and future imports use it too. Blank labels cannot be linked and are marked "fix at the source".
-3. **Dashboard.** Spend vs budget per project, most urgent first, with the budget bar, status and an "at this pace" projection (a straight line from the average of the last four weeks of data: how many weeks until the budget runs out, or how far over it already is). Spend by tool/vendor, weekly spend, and a "needs attention" panel linking to projects above a threshold, to unlinked records, and to unusually large charges (at least 8 times the median for the same vendor and item, so a video render is never compared with an image job). Each project opens a detail page with its pace, vendor split, weekly spend and every record, refunds and flagged charges included. Every table of records can be downloaded as CSV for finance, all projects or one.
-4. **Alerts.** Thresholds and delivery target, projects currently above a threshold, a manual "check and send", and the history of what the webhook received.
+- **Dashboard** (`/`). Total spend across the six projects against total budget, then *Spend vs budget per proyek* (spend, budget, % budget terpakai, status, and what happens if the last four weeks' pace continues), *Spend per tool / vendor* and *Spend mingguan*. Spend with no project is shown separately so the project total is not inflated. A yellow note above the table says when unusual charges sit inside a project and what its percentage would be without them. A short list says what needs a decision this week.
+1. **Import data** (`/import`). Which file each source reads: the bundled sample from `data/`, or the latest upload. Upload this week's Vendor A and Vendor B exports and the manual spreadsheet, then run the import; Vendor C is pulled from its API. Every run is logged per source: read, new, updated, unchanged, skipped, removed, and why.
+2. **Nama tak dikenal** (`/review`). Transactions whose project name matched nothing, grouped by the name as typed, with the transactions behind each one. Pick the project once and every transaction with that name moves now and in future imports; or mark it "not a project" (`test`, `new client pitch`) so it stops asking. A blank name cannot be matched and says to fix it at the source.
+3. **Tagihan janggal** (`/charges`). Charges at least 8 times the median for the same vendor and item (so a video render is never compared with an image job), with what each affected project's percentage would be without them.
+4. **Budget alert** (`/alerts`). Thresholds, where alerts go, every alert sent, and the exact message the webhook received.
+
+Each project has a page (`/projects/KMD-02`) with its pace, vendor split, weekly spend and every transaction. Every list of transactions downloads as CSV for finance (`/export`, or `/export?project=KMD-02`).
 
 ### Import from the command line
 
@@ -48,9 +51,18 @@ Run it as often as you like. A record is identified by its source and vendor-sid
 
 ### Alerts
 
-When a project's spend crosses a threshold (default 80%, plus 100%), one message is posted to `ALERT_WEBHOOK_URL` stating the project, current spend, budget and percentage used. The body carries the message as both `content` (Discord) and `text` (Slack), plus a structured `alert` object, so the same URL works for Discord, Slack or a mock endpoint.
+When a project's spend crosses a threshold (default 80%, plus 100%), one message is posted to `ALERT_WEBHOOK_URL` stating the project, current spend, budget and percentage used:
 
-Alerts are evaluated automatically at the end of every import and after a label is linked, from the Alerts page, or from the command line:
+```
+Peringatan budget (80%): KMD-02 Kopi Malam Mini Drama S1 (Kopi Malam)
+Spend saat ini: Rp 48.151.626
+Budget: Rp 56.000.000
+Budget terpakai: 86,0%
+```
+
+The JSON body carries that text as both `content` and `text`, the field names common chat webhooks read, plus a structured `alert` object for any other consumer, so the same URL works for a chat tool or a mock endpoint.
+
+Alerts are evaluated automatically at the end of every import and after a name is linked, from the Budget alert page, or from the command line:
 
 ```bash
 npm run alerts                      # send anything newly crossed
@@ -60,7 +72,7 @@ npm run alerts -- --reset           # forget sent alerts (useful for demos), the
 
 Each (project, threshold) pair is announced once; it is recorded in `budget_alerts` and not re-sent on the next import. If `ALERT_WEBHOOK_URL` is empty, alerts are recorded as console-delivered, and they are sent again once a webhook is configured.
 
-To watch it locally without a Discord server:
+To watch it locally without a chat tool:
 
 ```bash
 npm run mock:webhook                # prints every POST it receives on http://localhost:4020/webhook
@@ -99,16 +111,17 @@ src/                       the core, no framework, used by the CLI and the app
   alerts/                  threshold evaluation, webhook/console senders, once-per-threshold state
   cli/                     import.ts, alerts.ts
 src/analysis/              pace projection, outlier detection, CSV export: pure functions with their own tests
-app/                       Next.js 15 (App Router): / dashboard, /projects/[code], /import, /review, /alerts, /export (CSV)
-  actions.ts               server actions: run import, upload/discard a file, link a label, check/reset alerts
-  lib/data.ts              one loader per page, all reading SQLite directly on the server
-  components/              nav, tables, budget bar, forms (client), charts (Recharts, client)
+app/                       Next.js 15 (App Router): / dashboard, /import, /review, /charges, /alerts, /projects/[code], /export (CSV)
+  actions.ts               server actions: run import, upload/discard a file, link or dismiss a name, check/reset alerts
+  lib/data.ts              one loader per page plus the sidebar's, all reading SQLite on the server
+  lib/format.ts            Indonesian number, date and status wording
+  components/              sidebar (client, for the phone menu), ledger primitives, forms (client)
 config/project_aliases.json    the starting set of nicknames -> project code
 tools/mock-webhook.mjs         local webhook receiver for demos
 tests/                         vitest
 ```
 
-**Data model.** `usage_records` holds one row per spend line with the original amount and currency, the IDR amount, UTC and WIB timestamps, the Monday of its WIB week, the label the user typed and the project it resolved to. `projects`, `project_aliases`, `import_runs` and `budget_alerts` are the supporting tables. Refunds are negative rows that reference the original charge.
+**Data model.** `usage_records` holds one row per spend line with the original amount and currency, the IDR amount, UTC and WIB timestamps, the Monday of its WIB week, the label the user typed and the project it resolved to. `projects`, `project_aliases`, `reviewed_labels` (names marked "not a project"), `import_runs` and `budget_alerts` are the supporting tables. Refunds are negative rows that reference the original charge.
 
 ### Key design decisions
 
@@ -120,21 +133,21 @@ Idempotency comes from a natural key, `UNIQUE(source, external_id)`. Vendors A, 
 
 The ops sheet is treated as a full snapshot: rows edited or deleted in the sheet disappear from the database on the next import. Vendor exports are append-only feeds and are never pruned.
 
-Project aliases start in a config file and grow from the Review names page. People type `kmd02`, `KMD 02`, `Kopi Malam` and `kopi malam drama`; all of them map to KMD-02. A label nobody anticipated is linked once from the dashboard, stored in `project_aliases`, and wins over the config file. Unknown labels stay in the database with no project rather than being guessed. The resolver refuses an alias claimed by two projects.
+Project aliases start in a config file and grow from the Nama tak dikenal page. People type `kmd02`, `KMD 02`, `Kopi Malam` and `kopi malam drama`; all of them map to KMD-02. A label nobody anticipated is linked once from the dashboard, stored in `project_aliases`, and wins over the config file. Unknown labels stay in the database with no project rather than being guessed. The resolver refuses an alias claimed by two projects.
 
 Uploads replace the bundled sample per source and live in `data/uploads/` (git-ignored). The importer does not care where the file came from, so the CLI and the app read the same thing.
 
 Alerts keep state and run after every import and after every label link. Each threshold crossing is recorded once; a project that passes 80% and 100% in the same run gets a single message for the highest. A failed delivery is not recorded, so it retries on the next run.
 
-Next.js with server components: every page reads SQLite on the server and ships HTML; the only client code is the forms and the charts. Server actions replace an API layer for the five things a user can do. There is no build step for the CLI, which still runs through tsx.
+Next.js with server components: every page reads SQLite on the server and ships HTML, charts included (they are plain CSS bars); the only client code is the forms and the phone menu. Server actions replace an API layer for the five things a user can do. There is no build step for the CLI, which still runs through tsx.
 
 Money is integer IDR. Each record is converted and rounded on its own, so every total is a sum of whole rupiah.
 
 ### Interface design
 
-The pages are deliberately plain: an internal tool the ops team reads every day should look like a report, not a product. The navigation is the weekly flow in order, and the dashboard opens with that same flow as a four-step checklist whose lines show live state (last import and how fresh the newest transaction is, names waiting to be linked, projects over a threshold and unusual charges, alerts pending or sent), so a new person knows what to do next without reading this file. Copy uses the team's words: transactions, not records; project names and nicknames, not labels and aliases; a Discord or Slack channel, not a webhook, except where the developer has to act. The budget bar is the recurring visual element, and colour appears only where it carries state: green, amber and red for budget status, one blue for the single primary action on a page. Charts use one fixed hue per project across the whole site, and each chart has a table beneath it with the same numbers for screen readers and for when the chart cannot render.
+The look is a ledger: white paper, black ink, hairline rules, no cards. An internal tool the ops team reads every day should look like a finance report, not a product. Section titles use the brief's own terms (spend vs budget per project, spend per tool / vendor, weekly spend, budget alert) so the screen and the requirements read the same. The sidebar is the weekly routine in order, each step with a live count, so a new person knows what to do next without reading this file.
 
-IBM Plex Sans is the typeface because every number on these pages sits in a column and Plex has tabular figures and a report-like tone. The app ships in light mode only; it is used on office laptops in daylight and a single theme is one theme to verify.
+Colour appears only where it carries state: green for on track, amber and red for 80% and 100%, yellow for "being checked". The budget bar, with a hairline at the 80% mark, is the recurring element. Unusual charges are drawn as a yellow segment inside the vendor and weekly bars, so their effect on a total is visible rather than hidden in a footnote. IBM Plex Sans carries the text and IBM Plex Mono every figure, so amounts line up in columns like a ledger. The app ships in light mode only; it is used on office laptops in daylight, and a single theme is one theme to verify. Below 1024 px the sidebar collapses into a top bar with a Menu button.
 
 ## Assumptions
 

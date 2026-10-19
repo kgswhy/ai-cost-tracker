@@ -19,7 +19,7 @@ export function manualOpsImporter(xlsxPath: string, opts: { automatedVendors?: s
   const automated = new Set((opts.automatedVendors ?? ["Vendor A"]).map((v) => v.toLowerCase()));
   return {
     source: "manual_ops",
-    label: "Manual ops sheet",
+    label: "Spreadsheet manual",
     fullSnapshot: true,
     async run(ctx: ImportContext): Promise<ImportOutput> {
       const wb = XLSX.read(fs.readFileSync(xlsxPath), { type: "buffer", cellDates: false });

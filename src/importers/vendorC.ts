@@ -89,7 +89,7 @@ export async function fetchAllVendorCUsage(opts: VendorCClientOptions, log: (m: 
 export function vendorCImporter(opts: VendorCClientOptions): Importer {
   return {
     source: "vendor_c",
-    label: "Vendor C",
+    label: "Vendor C API",
     async run(ctx: ImportContext): Promise<ImportOutput> {
       const raw = await fetchAllVendorCUsage(opts, ctx.warn);
       const records: UsageRecord[] = [];

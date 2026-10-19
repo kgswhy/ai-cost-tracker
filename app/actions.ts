@@ -1,11 +1,12 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getDb } from "@/src/db/connection";
-import { addUserAlias, relinkRecords } from "@/src/db/index";
+import { addUserAlias, markLabelReviewed, relinkRecords } from "@/src/db/index";
 import { loadReferenceData, runImport, type SourceSummary } from "@/src/importers/index";
 import { discardUpload, saveUpload, SOURCE_FILES, type FileSource } from "@/src/importers/files";
 import { runConfiguredAlerts } from "@/src/alerts/run";
-import { formatAlertMessage, resetAlerts } from "@/src/alerts/index";
+import { resetAlerts, type BudgetAlert } from "@/src/alerts/index";
 import { normalizeLabel } from "@/src/normalize/project";
 
 export interface ActionResult {
@@ -15,22 +16,24 @@ export interface ActionResult {
   summaries?: SourceSummary[];
 }
 
-function revalidateAll() {
-  for (const p of ["/", "/import", "/review", "/alerts"]) revalidatePath(p);
-  revalidatePath("/projects/[code]", "page");
-}
+// The sidebar counts live in the layout, so every action refreshes the whole tree.
+const refresh = () => revalidatePath("/", "layout");
+
+const alertLine = (a: BudgetAlert) => `${a.projectCode} lewat ${a.thresholdPct}% (sekarang ${a.pctUsed.toFixed(1).replace(".", ",")}%)`;
 
 export async function runImportAction(): Promise<ActionResult> {
   const db = getDb();
   const summaries = await runImport({ db });
   const alerts = await runConfiguredAlerts(db);
-  revalidateAll();
+  refresh();
   const failed = summaries.filter((s) => s.status === "failed");
-  const details = alerts.sent.map((a) => "Alert sent: " + formatAlertMessage(a).replace(/\n/g, ", "));
-  for (const f of alerts.failed) details.push(`Alert for ${f.alert.projectCode} failed: ${f.error}`);
+  const details = alerts.sent.map((a) => "Budget alert terkirim: " + alertLine(a));
+  for (const f of alerts.failed) details.push(`Budget alert untuk ${f.alert.projectCode} gagal: ${f.error}`);
   return {
     ok: failed.length === 0,
-    message: failed.length ? `${failed.length} source(s) failed; the others imported.` : "Import finished. Nothing is counted twice: unchanged rows stay as they are.",
+    message: failed.length
+      ? `${failed.length} sumber gagal, sumber lain tetap ter-import.`
+      : "Import selesai. Data yang sama tidak dihitung dua kali: baris yang tidak berubah dibiarkan.",
     details,
     summaries,
   };
@@ -39,12 +42,12 @@ export async function runImportAction(): Promise<ActionResult> {
 export async function uploadAction(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
   const source = String(form.get("source")) as FileSource;
   const file = form.get("file");
-  if (!(source in SOURCE_FILES)) return { ok: false, message: "Unknown source." };
-  if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Choose a file first." };
+  if (!(source in SOURCE_FILES)) return { ok: false, message: "Sumber tidak dikenal." };
+  if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Pilih file dulu." };
   try {
     const saved = saveUpload(source, file.name, Buffer.from(await file.arrayBuffer()));
-    revalidatePath("/import");
-    return { ok: true, message: `${saved.fileName} is now the ${SOURCE_FILES[source].label}. Run the import to load it.` };
+    refresh();
+    return { ok: true, message: `${saved.fileName} sekarang dipakai untuk ${SOURCE_FILES[source].label}. Jalankan import untuk memuatnya.` };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : String(err) };
   }
@@ -52,44 +55,48 @@ export async function uploadAction(_prev: ActionResult | null, form: FormData): 
 
 export async function discardUploadAction(source: FileSource): Promise<ActionResult> {
   discardUpload(source);
-  revalidatePath("/import");
-  return { ok: true, message: `Back to the bundled ${SOURCE_FILES[source].bundled}. Run the import to reload it.` };
+  refresh();
+  return { ok: true, message: `Kembali ke file contoh ${SOURCE_FILES[source].bundled}. Jalankan import untuk memuatnya lagi.` };
 }
 
+/** Assigns a typed name to a project, or marks it as checked and not a project ("skip"). */
 export async function linkLabelAction(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
   const label = normalizeLabel(String(form.get("label") ?? ""));
-  const projectCode = String(form.get("projectCode") ?? "");
+  const choice = String(form.get("projectCode") ?? "");
   const db = getDb();
+  if (!label) return { ok: false, message: "Nama kosong tidak bisa dicocokkan. Isi nama proyeknya di sumber datanya." };
+  // The row leaves the list once saved, so the confirmation travels to the page in the URL.
+  const done = (message: string) => { refresh(); redirect(`/review?selesai=${encodeURIComponent(message)}`); };
+  if (choice === "skip") {
+    markLabelReviewed(db, label);
+    done(`"${label}" ditandai sudah dicek. Transaksinya tetap tanpa proyek dan tidak muncul di daftar ini lagi.`);
+  }
   const { projects } = loadReferenceData(db);
-  if (!label) return { ok: false, message: "Blank labels cannot be linked; fix them at the source." };
-  if (!projects.some((p) => p.code === projectCode)) return { ok: false, message: "Pick a project." };
-  addUserAlias(db, label, projectCode);
+  if (!projects.some((p) => p.code === choice)) return { ok: false, message: "Pilih proyek dulu." };
+  addUserAlias(db, label, choice);
   const { resolver } = loadReferenceData(db);
   const moved = relinkRecords(db, resolver);
   const alerts = await runConfiguredAlerts(db);
-  // Every page except this one: the row stays on screen with its confirmation until the next visit.
-  for (const p of ["/", "/import", "/alerts"]) revalidatePath(p);
-  revalidatePath("/projects/[code]", "page");
-  const details = alerts.sent.map((a) => "Alert sent: " + formatAlertMessage(a).replace(/\n/g, ", "));
-  return { ok: true, message: `"${label}" now means ${projectCode}. ${moved} transaction(s) moved. It leaves this list on the next visit.`, details };
+  const sent = alerts.sent.map((a) => " Budget alert terkirim: " + alertLine(a) + ".").join("");
+  done(`Tersimpan. ${moved} transaksi "${label}" pindah ke ${choice}, dan import berikutnya ikut memakai pilihan ini.${sent}`);
+  return { ok: true, message: "" };
 }
 
 export async function checkAlertsAction(): Promise<ActionResult> {
   const db = getDb();
   const r = await runConfiguredAlerts(db);
-  revalidatePath("/alerts");
-  revalidatePath("/");
-  if (r.sent.length === 0 && r.failed.length === 0) return { ok: true, message: "Nothing new to send. Every crossed threshold has already been announced." };
+  refresh();
+  if (r.sent.length === 0 && r.failed.length === 0) return { ok: true, message: "Tidak ada yang baru. Semua batas yang terlewati sudah diberitahukan." };
   return {
     ok: r.failed.length === 0,
-    message: `${r.sent.length} alert(s) sent${r.failed.length ? `, ${r.failed.length} failed` : ""}.`,
-    details: [...r.sent.map((a) => formatAlertMessage(a).replace(/\n/g, ", ")), ...r.failed.map((f) => `${f.alert.projectCode}: ${f.error}`)],
+    message: `${r.sent.length} budget alert terkirim${r.failed.length ? `, ${r.failed.length} gagal` : ""}.`,
+    details: [...r.sent.map(alertLine), ...r.failed.map((f) => `${f.alert.projectCode}: ${f.error}`)],
   };
 }
 
 export async function resetAlertsAction(): Promise<ActionResult> {
   const db = getDb();
   const n = resetAlerts(db);
-  revalidatePath("/alerts");
-  return { ok: true, message: `Forgot ${n} sent alert(s). The next check sends them again.` };
+  refresh();
+  return { ok: true, message: `${n} catatan alert dihapus. Pengecekan berikutnya mengirim semuanya lagi.` };
 }

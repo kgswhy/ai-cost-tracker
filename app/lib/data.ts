@@ -1,75 +1,124 @@
 import { getDb } from "@/src/db/connection";
 import { config } from "@/src/config";
 import {
-  allRecords, importRunHistory, latestImportRuns, latestRecordWib, latestWeekStart, projectRecords, projectSpend, projectWeekly, recentAlerts, totals,
-  unassignedGroups, unassignedRecords, vendorByProject, vendorSpend, weeklySpend,
+  allRecords, importRunHistory, latestImportRuns, latestRecordWib, latestWeekStart, projectRecords, projectSpend, projectWeekly,
+  recentAlerts, totals, unassignedGroups, unassignedRecords, vendorSpend, weeklySpend, type ExportRow,
 } from "@/src/db/queries";
-import { computePace, type Pace } from "@/src/analysis/pace";
+import { computePace } from "@/src/analysis/pace";
 import { findOutliers, type OutlierVerdict } from "@/src/analysis/outliers";
-import { listUserAliases } from "@/src/db/index";
+import { listReviewedLabels, listUserAliases, type Db } from "@/src/db/index";
 import { loadReferenceData } from "@/src/importers/index";
 import { resolveSourceFile, SOURCE_FILES, type FileSource } from "@/src/importers/files";
-import { pendingAlerts } from "@/src/alerts/index";
+import { formatAlertMessage, pendingAlerts } from "@/src/alerts/index";
+import { normalizeLabel } from "@/src/normalize/project";
 
-export function dashboardData() {
-  const db = getDb();
-  const weekly = weeklySpend(db);
-  const latestWeek = latestWeekStart(db);
-  // Most urgent first: the dashboard exists to answer "which project is about to run over".
-  const projects = projectSpend(db)
-    .map((p) => ({ ...p, pace: computePace(weekly.filter((w) => w.projectCode === p.code), p.budgetIdr, p.spendIdr, latestWeek) }))
-    .sort((a, b) => b.pctUsed - a.pctUsed);
+export type Outlier = ExportRow & { verdict: OutlierVerdict };
+
+/** Charges at least 8x the usual amount for their vendor and item, biggest first. */
+function outliersOf(db: Db): Outlier[] {
   const records = allRecords(db);
   const verdicts = findOutliers(records);
-  const outliers = records
+  return records
     .filter((r) => verdicts.get(r)?.isOutlier)
     .map((r) => ({ ...r, verdict: verdicts.get(r)! }))
     .sort((a, b) => b.amountIdr - a.amountIdr);
-  const importRuns = latestImportRuns(db);
-  const groups = unassignedGroups(db);
+}
+
+/** Unlinked names nobody has looked at yet: reviewed ones ("not a project") drop off the list. */
+function waitingGroups(db: Db) {
+  const reviewed = new Set(listReviewedLabels(db).map((r) => r.label));
+  return unassignedGroups(db).filter((g) => !reviewed.has(normalizeLabel(g.label)) || g.label.trim() === "");
+}
+
+/** Projects with spend, pace and, where an unusual charge sits in them, the share without it. */
+function projectsWithPace(db: Db, outliers: Outlier[]) {
+  const weekly = weeklySpend(db);
+  const latestWeek = latestWeekStart(db);
+  const outlierIdr = new Map<string, number>();
+  for (const o of outliers) if (o.projectCode) outlierIdr.set(o.projectCode, (outlierIdr.get(o.projectCode) ?? 0) + o.amountIdr);
+  return projectSpend(db).map((p) => {
+    const flagged = outlierIdr.get(p.code) ?? 0;
+    return {
+      ...p,
+      pace: computePace(weekly.filter((w) => w.projectCode === p.code), p.budgetIdr, p.spendIdr, latestWeek),
+      flaggedIdr: flagged,
+      pctWithoutFlagged: flagged && p.budgetIdr ? ((p.spendIdr - flagged) / p.budgetIdr) * 100 : null,
+    };
+  });
+}
+
+/** Everything the sidebar shows on every page. */
+export function shellData() {
+  const db = getDb();
+  const runs = latestImportRuns(db);
   const webhook = Boolean(config.alerts.webhookUrl);
-  const checklist = {
-    lastImportAt: importRuns.length ? importRuns.map((r) => r.startedAt).sort().at(-1)! : null,
-    sourcesOk: importRuns.filter((r) => r.status === "ok").length,
-    sourcesFailed: importRuns.filter((r) => r.status !== "ok").map((r) => r.source),
-    sourcesTotal: 4,
-    newestRecordWib: latestRecordWib(db),
-    labelsWaiting: groups.length,
-    webhookConfigured: webhook,
-    alertsPending: pendingAlerts(db, config.alerts.thresholds, webhook).length,
-    alertsSent: recentAlerts(db).length,
-  };
+  const projects = projectSpend(db);
   return {
-    totals: totals(db),
+    thresholds: config.alerts.thresholds,
+    projects: projects.map((p) => ({ code: p.code, client: p.client, pctUsed: p.pctUsed })),
+    namesWaiting: waitingGroups(db).filter((g) => g.label.trim() !== "").length,
+    outliers: outliersOf(db).length,
+    alertsPending: pendingAlerts(db, config.alerts.thresholds, webhook).length,
+    lastImport: runs.length
+      ? {
+          at: runs.map((r) => r.startedAt).sort().at(-1)!,
+          failed: runs.filter((r) => r.status !== "ok").map((r) => r.source),
+          inserted: runs.reduce((s, r) => s + r.inserted, 0),
+          unchanged: runs.reduce((s, r) => s + r.unchanged, 0),
+          updated: runs.reduce((s, r) => s + r.updated, 0),
+        }
+      : null,
+  };
+}
+
+export function dashboardData() {
+  const db = getDb();
+  const outliers = outliersOf(db);
+  const projects = projectsWithPace(db, outliers).sort((a, b) => b.pctUsed - a.pctUsed);
+  const t = totals(db);
+  const projectSpendIdr = t.spendIdr - t.unassignedIdr;
+
+  const flaggedByVendor = new Map<string, number>();
+  for (const o of outliers) flaggedByVendor.set(o.vendor, (flaggedByVendor.get(o.vendor) ?? 0) + o.amountIdr);
+  const flaggedByWeek = new Map<string, number>();
+  for (const o of outliers) flaggedByWeek.set(o.weekStartWib, (flaggedByWeek.get(o.weekStartWib) ?? 0) + o.amountIdr);
+  const weekTotals = new Map<string, number>();
+  for (const w of weeklySpend(db)) weekTotals.set(w.weekStart, (weekTotals.get(w.weekStart) ?? 0) + w.spendIdr);
+
+  const groups = waitingGroups(db).filter((g) => g.label.trim() !== "");
+  const records = allRecords(db);
+  return {
+    hasData: t.recordCount > 0,
+    firstDay: records.length ? records.map((r) => r.occurredAtWib).sort()[0] : null,
+    lastDay: latestRecordWib(db),
+    totals: { ...t, projectSpendIdr },
     projects,
     outliers,
-    checklist,
-    vendors: vendorSpend(db),
-    vendorByProject: vendorByProject(db),
-    weekly,
-    unassignedCount: unassignedRecords(db).length,
-    importRuns,
-    alerts: recentAlerts(db),
+    namesWaiting: groups.length,
+    vendors: vendorSpend(db).map((v) => ({ ...v, flaggedIdr: flaggedByVendor.get(v.vendor) ?? 0 })),
+    weeks: [...weekTotals.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([weekStart, spendIdr]) => ({ weekStart, spendIdr, flaggedIdr: flaggedByWeek.get(weekStart) ?? 0 })),
     thresholds: config.alerts.thresholds,
   };
 }
 
+export function chargesData() {
+  const db = getDb();
+  const outliers = outliersOf(db);
+  const projects = projectsWithPace(db, outliers);
+  return { outliers, projects, thresholds: config.alerts.thresholds };
+}
+
 export function projectData(code: string) {
   const db = getDb();
-  const project = projectSpend(db).find((p) => p.code === code);
+  const outliers = outliersOf(db);
+  const project = projectsWithPace(db, outliers).find((p) => p.code === code);
   if (!project) return null;
-  const weekly = projectWeekly(db, code);
-  const pace: Pace = computePace(weekly, project.budgetIdr, project.spendIdr, latestWeekStart(db));
-  // Medians come from every record, not just this project's, so a lone big charge still has peers to compare with.
-  const verdicts = findOutliers(allRecords(db));
-  const byId = new Map<number, OutlierVerdict>();
-  for (const [r, v] of verdicts) if (v.isOutlier) byId.set(r.id, v);
+  const flaggedIds = new Map(outliers.map((o) => [o.id, o.verdict]));
   return {
     project,
-    pace,
     vendors: vendorSpend(db, code),
-    weekly,
-    records: projectRecords(db, code).map((r) => ({ ...r, outlier: byId.get(r.id) ?? null })),
+    weekly: projectWeekly(db, code),
+    records: projectRecords(db, code).map((r) => ({ ...r, outlier: flaggedIds.get(r.id) ?? null })),
     thresholds: config.alerts.thresholds,
   };
 }
@@ -87,28 +136,39 @@ export function importPageData() {
 
 export function reviewPageData() {
   const db = getDb();
-  const { projects, aliases } = loadReferenceData(db);
+  const { projects } = loadReferenceData(db);
+  const unlinked = unassignedRecords(db);
+  const groups = waitingGroups(db).map((g) => ({
+    ...g,
+    rows: unlinked.filter((r) => r.projectLabel === g.label),
+  }));
   return {
-    groups: unassignedGroups(db),
+    groups,
+    totalIdr: unlinked.reduce((s, r) => s + r.amountIdr, 0),
+    totalCount: unlinked.length,
     projects,
     userAliases: listUserAliases(db),
-    configAliasCount: Object.entries(aliases).filter(([k]) => !k.startsWith("_")).reduce((n, [, v]) => n + v.length, 0),
+    reviewed: listReviewedLabels(db),
   };
 }
 
-export function alertsPageData() {
+export function alertsPageData(selected?: string) {
   const db = getDb();
   const webhook = config.alerts.webhookUrl;
+  const sent = recentAlerts(db).map((a) => {
+    const p = projectSpend(db).find((x) => x.code === a.projectCode);
+    const message = formatAlertMessage({
+      projectCode: a.projectCode, projectName: p?.name ?? a.projectCode, client: p?.client ?? "", thresholdPct: a.thresholdPct,
+      spendIdr: a.spendIdr, budgetIdr: a.budgetIdr, pctUsed: a.pctUsed,
+    });
+    return { ...a, key: `${a.projectCode}-${a.thresholdPct}`, message };
+  });
   return {
     thresholds: config.alerts.thresholds,
     webhookConfigured: Boolean(webhook),
-    webhookHost: webhook ? safeHost(webhook) : null,
     pending: pendingAlerts(db, config.alerts.thresholds, Boolean(webhook)),
-    sent: recentAlerts(db),
-    projects: projectSpend(db),
+    sent,
+    current: sent.find((a) => a.key === selected) ?? sent[0] ?? null,
+    projectsSent: new Set(sent.map((a) => a.projectCode)).size,
   };
-}
-
-function safeHost(url: string): string {
-  try { return new URL(url).host; } catch { return "(invalid URL)"; }
 }
