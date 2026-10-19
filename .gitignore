@@ -13,3 +13,5 @@ anti-slop/
 data/uploads/
 .next/
 next-env.d.ts
+.vitest/
+*.tsbuildinfo
