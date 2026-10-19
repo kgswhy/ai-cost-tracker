@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.DS_Store
+# assignment brief, not part of the deliverable
+AI_Production_Cost_Tracker_Take_Home.pdf

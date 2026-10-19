@@ -1,0 +1,32 @@
+{
+  "name": "ai-cost-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Consolidates AI production spend from several vendors into one database, dashboard and budget alerts.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "mock:vendor-c": "node vendor-c-mock/server.js",
+    "import": "tsx src/cli/import.ts",
+    "alerts": "tsx src/cli/alerts.ts",
+    "dev": "tsx watch src/web/server.ts",
+    "start": "tsx src/web/server.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^18.0.8",
+    "fastify": "^5.12.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

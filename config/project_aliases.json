@@ -1,0 +1,9 @@
+{
+  "_comment": "Maps the free-text project labels users type into vendor tools to canonical project codes from data/projects.csv. Matching is case-insensitive and ignores surrounding whitespace. Labels that match nothing are kept as 'unassigned' so the ops team can see and fix them.",
+  "GBX-01": ["gbx-01", "gbx01", "gbx 01", "greenbox", "greenbox benchmark", "greenbox garden"],
+  "KMD-02": ["kmd-02", "kmd02", "kmd 02", "kopi malam", "kopi malam drama"],
+  "GLW-03": ["glw-03", "glw03", "glw 03", "glowlab", "glowlab serum"],
+  "SNJ-04": ["snj-04", "snj04", "snj 04", "senja", "senja resort"],
+  "BRK-05": ["brk-05", "brk05", "brk 05", "barakuda", "barakuda lookbook"],
+  "INT-00": ["int-00", "int00", "int 00", "internal", "rnd", "r&d", "internal r&d"]
+}

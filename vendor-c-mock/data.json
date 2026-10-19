@@ -1,0 +1,723 @@
+[
+ {
+  "id": "vc_30147",
+  "created_at": "2026-08-31T01:18:32Z",
+  "project": "glw-03",
+  "service": "sfx.generate",
+  "amount_usd_cents": 3455
+ },
+ {
+  "id": "vc_30278",
+  "created_at": "2026-08-31T08:36:43Z",
+  "project": "int-00",
+  "service": "music.generate",
+  "amount_usd_cents": 2950
+ },
+ {
+  "id": "vc_30195",
+  "created_at": "2026-08-31T20:50:04Z",
+  "project": "GLW-03",
+  "service": "music.generate",
+  "amount_usd_cents": 2368
+ },
+ {
+  "id": "vc_30088",
+  "created_at": "2026-09-01T04:54:50Z",
+  "project": "kmd-02",
+  "service": "sfx.generate",
+  "amount_usd_cents": 2885
+ },
+ {
+  "id": "vc_30105",
+  "created_at": "2026-09-01T09:10:13Z",
+  "project": "kmd-02",
+  "service": "voice.clone",
+  "amount_usd_cents": 1850
+ },
+ {
+  "id": "vc_30224",
+  "created_at": "2026-09-02T04:27:35Z",
+  "project": "snj04",
+  "service": "music.generate",
+  "amount_usd_cents": 2561
+ },
+ {
+  "id": "vc_30281",
+  "created_at": "2026-09-02T12:49:37Z",
+  "project": "int-00",
+  "service": "voice.clone",
+  "amount_usd_cents": 1095
+ },
+ {
+  "id": "vc_30288",
+  "created_at": "2026-09-02T13:38:14Z",
+  "project": "rnd",
+  "service": "music.generate",
+  "amount_usd_cents": 3937
+ },
+ {
+  "id": "vc_30138",
+  "created_at": "2026-09-02T14:39:19Z",
+  "project": "KMD 02",
+  "service": "voice.tts",
+  "amount_usd_cents": 1443
+ },
+ {
+  "id": "vc_30269",
+  "created_at": "2026-09-03T06:24:18Z",
+  "project": "brk-05",
+  "service": "voice.tts",
+  "amount_usd_cents": 2687
+ },
+ {
+  "id": "vc_30204",
+  "created_at": "2026-09-03T07:31:45Z",
+  "project": "SNJ 04",
+  "service": "music.generate",
+  "amount_usd_cents": 3027
+ },
+ {
+  "id": "vc_30154",
+  "created_at": "2026-09-04T04:59:14Z",
+  "project": "glw-03",
+  "service": "voice.tts",
+  "amount_usd_cents": 2200
+ },
+ {
+  "id": "vc_30020",
+  "created_at": "2026-09-04T13:08:35Z",
+  "project": "gbx-01",
+  "service": "music.generate",
+  "amount_usd_cents": 923
+ },
+ {
+  "id": "vc_30084",
+  "created_at": "2026-09-05T01:47:03Z",
+  "project": "kmd-02",
+  "service": "sfx.generate",
+  "amount_usd_cents": 2651
+ },
+ {
+  "id": "vc_30075",
+  "created_at": "2026-09-05T04:48:46Z",
+  "project": "kmd-02",
+  "service": "sfx.generate",
+  "amount_usd_cents": 3508
+ },
+ {
+  "id": "vc_30031",
+  "created_at": "2026-09-05T05:16:44Z",
+  "project": "GBX01",
+  "service": "voice.tts",
+  "amount_usd_cents": 2407
+ },
+ {
+  "id": "vc_30055",
+  "created_at": "2026-09-05T09:05:04Z",
+  "project": "kmd-02",
+  "service": "sfx.generate",
+  "amount_usd_cents": 2312
+ },
+ {
+  "id": "vc_30304",
+  "created_at": "2026-09-05T09:08:29Z",
+  "project": "sandbox",
+  "service": "voice.tts",
+  "amount_usd_cents": 1320
+ },
+ {
+  "id": "vc_30299",
+  "created_at": "2026-09-05T10:20:17Z",
+  "project": "sandbox",
+  "service": "sfx.generate",
+  "amount_usd_cents": 3797
+ },
+ {
+  "id": "vc_30274",
+  "created_at": "2026-09-05T10:37:32Z",
+  "project": "int-00",
+  "service": "sfx.generate",
+  "amount_usd_cents": 2320
+ },
+ {
+  "id": "vc_30068",
+  "created_at": "2026-09-05T11:24:47Z",
+  "project": "kmd-02",
+  "service": "voice.clone",
+  "amount_usd_cents": 1320
+ },
+ {
+  "id": "vc_30119",
+  "created_at": "2026-09-05T11:59:19Z",
+  "project": "Kopi Malam",
+  "service": "sfx.generate",
+  "amount_usd_cents": 1550
+ },
+ {
+  "id": "vc_30065",
+  "created_at": "2026-09-06T05:07:34Z",
+  "project": "Kopi Malam",
+  "service": "voice.tts",
+  "amount_usd_cents": 3473
+ },
+ {
+  "id": "vc_30174",
+  "created_at": "2026-09-07T05:03:23Z",
+  "project": "glw-03",
+  "service": "voice.tts",
+  "amount_usd_cents": 1512
+ },
+ {
+  "id": "vc_30179",
+  "created_at": "2026-09-07T09:44:48Z",
+  "project": "glw-03",
+  "service": "voice.clone",
+  "amount_usd_cents": 2051
+ },
+ {
+  "id": "vc_30131",
+  "created_at": "2026-09-07T15:19:34Z",
+  "project": "kmd-02",
+  "service": "music.generate",
+  "amount_usd_cents": 1501
+ },
+ {
+  "id": "vc_30167",
+  "created_at": "2026-09-08T05:18:42Z",
+  "project": "glw-03",
+  "service": "music.generate",
+  "amount_usd_cents": 1323
+ },
+ {
+  "id": "vc_30064",
+  "created_at": "2026-09-08T22:56:45Z",
+  "project": "kmd-02",
+  "service": "voice.tts",
+  "amount_usd_cents": 3349
+ },
+ {
+  "id": "vc_30180",
+  "created_at": "2026-09-09T01:59:35Z",
+  "project": "glw-03",
+  "service": "voice.clone",
+  "amount_usd_cents": 2935
+ },
+ {
+  "id": "vc_30081",
+  "created_at": "2026-09-09T05:50:20Z",
+  "project": "kmd-02",
+  "service": "voice.tts",
+  "amount_usd_cents": 1880
+ },
+ {
+  "id": "vc_30094",
+  "created_at": "2026-09-09T19:05:06Z",
+  "project": "kmd-02",
+  "service": "voice.clone",
+  "amount_usd_cents": 3600
+ },
+ {
+  "id": "vc_30272",
+  "created_at": "2026-09-11T03:36:58Z",
+  "project": "rnd",
+  "service": "sfx.generate",
+  "amount_usd_cents": 1323
+ },
+ {
+  "id": "vc_30099",
+  "created_at": "2026-09-12T08:49:07Z",
+  "project": "kopi malam drama",
+  "service": "music.generate",
+  "amount_usd_cents": 882
+ },
+ {
+  "id": "vc_30115",
+  "created_at": "2026-09-12T13:47:08Z",
+  "project": "kopi malam drama",
+  "service": "voice.clone",
+  "amount_usd_cents": 1083
+ },
+ {
+  "id": "vc_30033",
+  "created_at": "2026-09-13T04:42:29Z",
+  "project": "gbx-01",
+  "service": "voice.clone",
+  "amount_usd_cents": 1607
+ },
+ {
+  "id": "vc_30260",
+  "created_at": "2026-09-14T03:15:54Z",
+  "project": "brk-05",
+  "service": "voice.tts",
+  "amount_usd_cents": 2309
+ },
+ {
+  "id": "vc_30245",
+  "created_at": "2026-09-14T05:02:07Z",
+  "project": "brk-05",
+  "service": "voice.tts",
+  "amount_usd_cents": 1824
+ },
+ {
+  "id": "vc_30015",
+  "created_at": "2026-09-14T07:47:13Z",
+  "project": "gbx-01",
+  "service": "sfx.generate",
+  "amount_usd_cents": 3550
+ },
+ {
+  "id": "vc_30040",
+  "created_at": "2026-09-15T03:53:33Z",
+  "project": "gbx-01",
+  "service": "voice.tts",
+  "amount_usd_cents": 1444
+ },
+ {
+  "id": "vc_30037",
+  "created_at": "2026-09-15T04:18:26Z",
+  "project": "GBX01",
+  "service": "music.generate",
+  "amount_usd_cents": 3467
+ },
+ {
+  "id": "vc_30142",
+  "created_at": "2026-09-15T05:04:23Z",
+  "project": "Glowlab",
+  "service": "music.generate",
+  "amount_usd_cents": 3069
+ },
+ {
+  "id": "vc_30004",
+  "created_at": "2026-09-15T07:28:17Z",
+  "project": "GBX-01",
+  "service": "voice.clone",
+  "amount_usd_cents": 1826
+ },
+ {
+  "id": "vc_30162",
+  "created_at": "2026-09-15T08:51:18Z",
+  "project": "GLW03",
+  "service": "voice.tts",
+  "amount_usd_cents": 1211
+ },
+ {
+  "id": "vc_30236",
+  "created_at": "2026-09-18T04:03:04Z",
+  "project": "snj04",
+  "service": "voice.clone",
+  "amount_usd_cents": 805
+ },
+ {
+  "id": "vc_30129",
+  "created_at": "2026-09-18T08:37:42Z",
+  "project": "KMD-02",
+  "service": "voice.clone",
+  "amount_usd_cents": 2409
+ },
+ {
+  "id": "vc_30078",
+  "created_at": "2026-09-18T13:28:10Z",
+  "project": "kmd-02",
+  "service": "voice.clone",
+  "amount_usd_cents": 1858
+ },
+ {
+  "id": "vc_30007",
+  "created_at": "2026-09-19T01:36:44Z",
+  "project": "greenbox benchmark",
+  "service": "voice.tts",
+  "amount_usd_cents": 536
+ },
+ {
+  "id": "vc_30049",
+  "created_at": "2026-09-19T03:51:01Z",
+  "project": "kmd-02",
+  "service": "music.generate",
+  "amount_usd_cents": 480
+ },
+ {
+  "id": "vc_30169",
+  "created_at": "2026-09-19T15:29:29Z",
+  "project": "glw-03",
+  "service": "sfx.generate",
+  "amount_usd_cents": 1164
+ },
+ {
+  "id": "vc_30101",
+  "created_at": "2026-09-19T21:46:57Z",
+  "project": "kmd-02",
+  "service": "music.generate",
+  "amount_usd_cents": 2219
+ },
+ {
+  "id": "vc_30205",
+  "created_at": "2026-09-20T00:28:54Z",
+  "project": "snj-04",
+  "service": "sfx.generate",
+  "amount_usd_cents": 384
+ },
+ {
+  "id": "vc_30229",
+  "created_at": "2026-09-20T08:24:50Z",
+  "project": "Senja",
+  "service": "music.generate",
+  "amount_usd_cents": 662
+ },
+ {
+  "id": "vc_30111",
+  "created_at": "2026-09-21T03:41:24Z",
+  "project": "kmd-02",
+  "service": "voice.clone",
+  "amount_usd_cents": 1107
+ },
+ {
+  "id": "vc_30127",
+  "created_at": "2026-09-21T06:15:09Z",
+  "project": "kmd-02",
+  "service": "sfx.generate",
+  "amount_usd_cents": 3080
+ },
+ {
+  "id": "vc_30233",
+  "created_at": "2026-09-21T09:49:30Z",
+  "project": "snj-04",
+  "service": "music.generate",
+  "amount_usd_cents": 3330
+ },
+ {
+  "id": "vc_30293",
+  "created_at": "2026-09-21T12:33:11Z",
+  "project": "int-00",
+  "service": "voice.clone",
+  "amount_usd_cents": 1333
+ },
+ {
+  "id": "vc_30227",
+  "created_at": "2026-09-22T05:28:36Z",
+  "project": "snj04",
+  "service": "voice.tts",
+  "amount_usd_cents": 3172
+ },
+ {
+  "id": "vc_30200",
+  "created_at": "2026-09-22T07:18:39Z",
+  "project": "snj-04",
+  "service": "voice.clone",
+  "amount_usd_cents": 465
+ },
+ {
+  "id": "vc_30034",
+  "created_at": "2026-09-22T10:34:46Z",
+  "project": "GBX01",
+  "service": "voice.clone",
+  "amount_usd_cents": 3253
+ },
+ {
+  "id": "vc_30012",
+  "created_at": "2026-09-23T05:01:08Z",
+  "project": "Greenbox",
+  "service": "voice.tts",
+  "amount_usd_cents": 3759
+ },
+ {
+  "id": "vc_30189",
+  "created_at": "2026-09-23T10:55:52Z",
+  "project": "glw-03",
+  "service": "sfx.generate",
+  "amount_usd_cents": 1173
+ },
+ {
+  "id": "vc_30184",
+  "created_at": "2026-09-23T17:48:28Z",
+  "project": "glw-03",
+  "service": "voice.tts",
+  "amount_usd_cents": 2612
+ },
+ {
+  "id": "vc_30160",
+  "created_at": "2026-09-23T21:57:02Z",
+  "project": "glw-03",
+  "service": "voice.tts",
+  "amount_usd_cents": 1013
+ },
+ {
+  "id": "vc_30216",
+  "created_at": "2026-09-24T00:34:30Z",
+  "project": "senja resort",
+  "service": "voice.clone",
+  "amount_usd_cents": 1961
+ },
+ {
+  "id": "vc_30122",
+  "created_at": "2026-09-24T05:27:18Z",
+  "project": "Kopi Malam",
+  "service": "sfx.generate",
+  "amount_usd_cents": 1355
+ },
+ {
+  "id": "vc_30240",
+  "created_at": "2026-09-24T06:00:40Z",
+  "project": "senja resort",
+  "service": "music.generate",
+  "amount_usd_cents": 3270
+ },
+ {
+  "id": "vc_30219",
+  "created_at": "2026-09-24T09:10:51Z",
+  "project": "SNJ-04",
+  "service": "voice.clone",
+  "amount_usd_cents": 2396
+ },
+ {
+  "id": "vc_30091",
+  "created_at": "2026-09-25T14:43:55Z",
+  "project": "KMD-02",
+  "service": "voice.tts",
+  "amount_usd_cents": 3725
+ },
+ {
+  "id": "vc_30273",
+  "created_at": "2026-09-26T04:57:18Z",
+  "project": "int-00",
+  "service": "music.generate",
+  "amount_usd_cents": 2037
+ },
+ {
+  "id": "vc_30211",
+  "created_at": "2026-09-26T10:08:01Z",
+  "project": "snj-04",
+  "service": "voice.tts",
+  "amount_usd_cents": 3427
+ },
+ {
+  "id": "vc_30150",
+  "created_at": "2026-09-26T23:35:37Z",
+  "project": "Glowlab",
+  "service": "music.generate",
+  "amount_usd_cents": 163
+ },
+ {
+  "id": "vc_30197",
+  "created_at": "2026-09-27T05:10:04Z",
+  "project": "glw-03",
+  "service": "voice.clone",
+  "amount_usd_cents": 3539
+ },
+ {
+  "id": "vc_30175",
+  "created_at": "2026-09-27T13:54:55Z",
+  "project": "glw-03",
+  "service": "music.generate",
+  "amount_usd_cents": 2452
+ },
+ {
+  "id": "vc_30148",
+  "created_at": "2026-09-28T06:05:18Z",
+  "project": "glw-03",
+  "service": "voice.tts",
+  "amount_usd_cents": 1694
+ },
+ {
+  "id": "vc_30027",
+  "created_at": "2026-09-28T06:26:41Z",
+  "project": "gbx-01",
+  "service": "voice.tts",
+  "amount_usd_cents": 1128
+ },
+ {
+  "id": "vc_30210",
+  "created_at": "2026-09-28T06:36:58Z",
+  "project": "snj-04",
+  "service": "voice.clone",
+  "amount_usd_cents": 302
+ },
+ {
+  "id": "vc_30106",
+  "created_at": "2026-09-29T04:46:15Z",
+  "project": "kmd02",
+  "service": "voice.tts",
+  "amount_usd_cents": 1854
+ },
+ {
+  "id": "vc_30294",
+  "created_at": "2026-09-29T20:30:21Z",
+  "project": "sandbox",
+  "service": "voice.clone",
+  "amount_usd_cents": 271
+ },
+ {
+  "id": "vc_30059",
+  "created_at": "2026-09-30T19:20:42Z",
+  "project": "kmd-02",
+  "service": "voice.tts",
+  "amount_usd_cents": 240
+ },
+ {
+  "id": "vc_30267",
+  "created_at": "2026-10-02T09:27:06Z",
+  "project": "brk-05",
+  "service": "voice.clone",
+  "amount_usd_cents": 1742
+ },
+ {
+  "id": "vc_30134",
+  "created_at": "2026-10-02T10:37:31Z",
+  "project": "kopi malam drama",
+  "service": "sfx.generate",
+  "amount_usd_cents": 2031
+ },
+ {
+  "id": "vc_30181",
+  "created_at": "2026-10-02T11:49:56Z",
+  "project": "glw-03",
+  "service": "voice.tts",
+  "amount_usd_cents": 1183
+ },
+ {
+  "id": "vc_30307",
+  "created_at": "2026-10-03T08:01:57Z",
+  "project": "sandbox",
+  "service": "sfx.generate",
+  "amount_usd_cents": 3906
+ },
+ {
+  "id": "vc_30039",
+  "created_at": "2026-10-03T21:13:04Z",
+  "project": "gbx-01",
+  "service": "voice.clone",
+  "amount_usd_cents": 2977
+ },
+ {
+  "id": "vc_30231",
+  "created_at": "2026-10-04T11:12:57Z",
+  "project": "snj-04",
+  "service": "sfx.generate",
+  "amount_usd_cents": 2154
+ },
+ {
+  "id": "vc_30225",
+  "created_at": "2026-10-04T13:53:13Z",
+  "project": "snj-04",
+  "service": "voice.tts",
+  "amount_usd_cents": 3152
+ },
+ {
+  "id": "vc_30071",
+  "created_at": "2026-10-04T15:49:58Z",
+  "project": "kmd-02",
+  "service": "sfx.generate",
+  "amount_usd_cents": 3706
+ },
+ {
+  "id": "vc_30248",
+  "created_at": "2026-10-05T01:30:09Z",
+  "project": "BRK-05",
+  "service": "voice.clone",
+  "amount_usd_cents": 3218
+ },
+ {
+  "id": "vc_30194",
+  "created_at": "2026-10-05T02:30:37Z",
+  "project": "glw-03",
+  "service": "voice.clone",
+  "amount_usd_cents": 3323
+ },
+ {
+  "id": "vc_30158",
+  "created_at": "2026-10-05T06:25:50Z",
+  "project": "glw-03",
+  "service": "voice.tts",
+  "amount_usd_cents": 251
+ },
+ {
+  "id": "vc_30237",
+  "created_at": "2026-10-05T08:00:13Z",
+  "project": "snj04",
+  "service": "voice.clone",
+  "amount_usd_cents": 2827
+ },
+ {
+  "id": "vc_30044",
+  "created_at": "2026-10-05T11:04:48Z",
+  "project": "kmd-02",
+  "service": "sfx.generate",
+  "amount_usd_cents": 2453
+ },
+ {
+  "id": "vc_30023",
+  "created_at": "2026-10-07T02:38:28Z",
+  "project": "GBX-01",
+  "service": "voice.tts",
+  "amount_usd_cents": 2988
+ },
+ {
+  "id": "vc_30019",
+  "created_at": "2026-10-07T03:41:18Z",
+  "project": "gbx-01",
+  "service": "voice.clone",
+  "amount_usd_cents": 3832
+ },
+ {
+  "id": "vc_30261",
+  "created_at": "2026-10-08T03:02:06Z",
+  "project": "Barakuda",
+  "service": "music.generate",
+  "amount_usd_cents": 355
+ },
+ {
+  "id": "vc_30253",
+  "created_at": "2026-10-08T10:44:38Z",
+  "project": "BRK05",
+  "service": "voice.clone",
+  "amount_usd_cents": 1170
+ },
+ {
+  "id": "vc_30263",
+  "created_at": "2026-10-08T11:36:01Z",
+  "project": "brk-05",
+  "service": "voice.tts",
+  "amount_usd_cents": 3995
+ },
+ {
+  "id": "vc_30051",
+  "created_at": "2026-10-08T17:06:45Z",
+  "project": "Kopi Malam",
+  "service": "sfx.generate",
+  "amount_usd_cents": 3515
+ },
+ {
+  "id": "vc_30284",
+  "created_at": "2026-10-09T03:45:03Z",
+  "project": "int-00",
+  "service": "sfx.generate",
+  "amount_usd_cents": 2202
+ },
+ {
+  "id": "vc_30257",
+  "created_at": "2026-10-09T06:03:38Z",
+  "project": "brk-05",
+  "service": "music.generate",
+  "amount_usd_cents": 469
+ },
+ {
+  "id": "vc_30221",
+  "created_at": "2026-10-09T08:39:15Z",
+  "project": "SNJ-04",
+  "service": "sfx.generate",
+  "amount_usd_cents": 2347
+ },
+ {
+  "id": "vc_30264",
+  "created_at": "2026-10-09T11:14:27Z",
+  "project": "barakuda lookbook",
+  "service": "sfx.generate",
+  "amount_usd_cents": 2272
+ },
+ {
+  "id": "vc_30079",
+  "created_at": "2026-10-09T14:40:00Z",
+  "project": "KMD-02",
+  "service": "voice.clone",
+  "amount_usd_cents": 2932
+ }
+]
