@@ -1,9 +1,11 @@
 import { getDb } from "@/src/db/connection";
 import { config } from "@/src/config";
 import {
-  importRunHistory, latestImportRuns, projectRecords, projectSpend, projectWeekly, recentAlerts, totals,
+  allRecords, importRunHistory, latestImportRuns, latestWeekStart, projectRecords, projectSpend, projectWeekly, recentAlerts, totals,
   unassignedGroups, unassignedRecords, vendorByProject, vendorSpend, weeklySpend,
 } from "@/src/db/queries";
+import { computePace, type Pace } from "@/src/analysis/pace";
+import { findOutliers, type OutlierVerdict } from "@/src/analysis/outliers";
 import { listUserAliases } from "@/src/db/index";
 import { loadReferenceData } from "@/src/importers/index";
 import { resolveSourceFile, SOURCE_FILES, type FileSource } from "@/src/importers/files";
@@ -11,12 +13,25 @@ import { pendingAlerts } from "@/src/alerts/index";
 
 export function dashboardData() {
   const db = getDb();
+  const weekly = weeklySpend(db);
+  const latestWeek = latestWeekStart(db);
+  // Most urgent first: the dashboard exists to answer "which project is about to run over".
+  const projects = projectSpend(db)
+    .map((p) => ({ ...p, pace: computePace(weekly.filter((w) => w.projectCode === p.code), p.budgetIdr, p.spendIdr, latestWeek) }))
+    .sort((a, b) => b.pctUsed - a.pctUsed);
+  const records = allRecords(db);
+  const verdicts = findOutliers(records);
+  const outliers = records
+    .filter((r) => verdicts.get(r)?.isOutlier)
+    .map((r) => ({ ...r, verdict: verdicts.get(r)! }))
+    .sort((a, b) => b.amountIdr - a.amountIdr);
   return {
     totals: totals(db),
-    projects: projectSpend(db),
+    projects,
+    outliers,
     vendors: vendorSpend(db),
     vendorByProject: vendorByProject(db),
-    weekly: weeklySpend(db),
+    weekly,
     unassignedCount: unassignedRecords(db).length,
     importRuns: latestImportRuns(db),
     alerts: recentAlerts(db),
@@ -28,11 +43,18 @@ export function projectData(code: string) {
   const db = getDb();
   const project = projectSpend(db).find((p) => p.code === code);
   if (!project) return null;
+  const weekly = projectWeekly(db, code);
+  const pace: Pace = computePace(weekly, project.budgetIdr, project.spendIdr, latestWeekStart(db));
+  // Medians come from every record, not just this project's, so a lone big charge still has peers to compare with.
+  const verdicts = findOutliers(allRecords(db));
+  const byId = new Map<number, OutlierVerdict>();
+  for (const [r, v] of verdicts) if (v.isOutlier) byId.set(r.id, v);
   return {
     project,
+    pace,
     vendors: vendorSpend(db, code),
-    weekly: projectWeekly(db, code),
-    records: projectRecords(db, code),
+    weekly,
+    records: projectRecords(db, code).map((r) => ({ ...r, outlier: byId.get(r.id) ?? null })),
     thresholds: config.alerts.thresholds,
   };
 }

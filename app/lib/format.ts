@@ -30,3 +30,16 @@ export function statusOf(pctUsed: number, thresholds: number[]): Status {
   if (pctUsed >= warn) return { cls: "warn", label: `Above ${warn}%` };
   return { cls: "ok", label: "On track" };
 }
+
+export type PaceLike = { weeklyIdr: number | null; weeksLeft: number | null; runsOutWeek: string | null; remainingIdr: number };
+
+/** One short phrase for the "at this pace" column. */
+export function paceText(p: PaceLike): string {
+  if (p.remainingIdr <= 0) return `Over by ${idr(-p.remainingIdr)}`;
+  if (p.weeklyIdr === null) return "No history yet";
+  if (p.weeklyIdr <= 0 || p.weeksLeft === null) return "No spend in the last 4 weeks";
+  const weeks = p.weeksLeft;
+  const when = p.runsOutWeek ? weekLabel(p.runsOutWeek).replace("Week of ", "") : "";
+  if (weeks > 52) return "More than a year left";
+  return `Runs out in about ${weeks < 1 ? "a week" : `${Math.round(weeks)} weeks`}${when ? ` (${when})` : ""}`;
+}
