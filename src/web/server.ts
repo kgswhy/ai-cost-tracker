@@ -45,7 +45,7 @@ app.post("/import", async (_req, reply) => {
   if (!importing) {
     importing = (async () => {
       const summaries = await runImport({ db });
-      const alerts = await runConfiguredAlerts(db);
+      const alerts = await runConfiguredAlerts(db, { log: (m) => app.log.info(m) });
       lastImport = { at: new Date().toISOString(), summaries, alertsSent: alerts.sent.length };
     })().finally(() => { importing = null; });
   }

@@ -84,7 +84,17 @@ export function upsertUsageRecords(db: Db, records: UsageRecord[]): UpsertStats 
   return stats;
 }
 
-export interface ImportRunResult extends UpsertStats { fetched: number; skipped: number }
+/** Deletes records of `source` whose external id is not in `keep`. Used for full-snapshot sources. */
+export function removeStaleRecords(db: Db, source: string, keep: string[]): number {
+  const keepSet = new Set(keep);
+  const rows = db.prepare(`SELECT external_id AS id FROM usage_records WHERE source = ?`).all(source) as { id: string }[];
+  const stale = rows.filter((r) => !keepSet.has(r.id)).map((r) => r.id);
+  const del = db.prepare(`DELETE FROM usage_records WHERE source = ? AND external_id = ?`);
+  db.transaction(() => stale.forEach((id) => del.run(source, id)))();
+  return stale.length;
+}
+
+export interface ImportRunResult extends UpsertStats { fetched: number; skipped: number; removed: number }
 
 export function startImportRun(db: Db, source: string): number {
   const r = db.prepare(`INSERT INTO import_runs (source, started_at, status) VALUES (?, ?, 'running')`)
@@ -94,8 +104,8 @@ export function startImportRun(db: Db, source: string): number {
 
 export function finishImportRun(db: Db, id: number, result: ImportRunResult): void {
   db.prepare(
-    `UPDATE import_runs SET finished_at = ?, status = 'ok', fetched = ?, inserted = ?, updated = ?, unchanged = ?, skipped = ? WHERE id = ?`,
-  ).run(new Date().toISOString(), result.fetched, result.inserted, result.updated, result.unchanged, result.skipped, id);
+    `UPDATE import_runs SET finished_at = ?, status = 'ok', fetched = ?, inserted = ?, updated = ?, unchanged = ?, skipped = ?, removed = ? WHERE id = ?`,
+  ).run(new Date().toISOString(), result.fetched, result.inserted, result.updated, result.unchanged, result.skipped, result.removed, id);
 }
 
 export function failImportRun(db: Db, id: number, error: unknown): void {

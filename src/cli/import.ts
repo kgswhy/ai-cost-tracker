@@ -16,6 +16,7 @@ for (const s of summaries) {
     console.log(`\n✗ ${s.label}: FAILED - ${s.error}`);
   } else {
     console.log(`\n✓ ${s.label}: fetched ${s.fetched}, inserted ${s.inserted}, updated ${s.updated}, unchanged ${s.unchanged}, skipped ${s.skipped}` +
+      (s.removed ? `, removed ${s.removed}` : "") +
       (s.unassigned ? `, ${s.unassigned} not linked to a project` : ""));
   }
   if (s.warnings.length) {

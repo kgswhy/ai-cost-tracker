@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../config.js";
-import { finishImportRun, failImportRun, openDatabase, startImportRun, upsertProjects, upsertUsageRecords, type Db } from "../db/index.js";
+import { finishImportRun, failImportRun, openDatabase, removeStaleRecords, startImportRun, upsertProjects, upsertUsageRecords, type Db } from "../db/index.js";
 import { createProjectResolver, loadAliases, loadProjectsCsv } from "../normalize/project.js";
 import type { Rates } from "../types.js";
 import { manualOpsImporter } from "./manualOps.js";
@@ -19,6 +19,7 @@ export interface SourceSummary {
   updated: number;
   unchanged: number;
   skipped: number;
+  removed: number;
   unassigned: number;
   warnings: string[];
   error?: string;
@@ -62,7 +63,8 @@ export async function runImport(opts: { db?: Db; importers?: Importer[]; only?: 
     try {
       const out = await importer.run(ctx);
       const stats = upsertUsageRecords(db, out.records);
-      const result = { ...stats, fetched: out.fetched, skipped: out.skipped };
+      const removed = importer.fullSnapshot ? removeStaleRecords(db, importer.source, out.records.map((r) => r.externalId)) : 0;
+      const result = { ...stats, fetched: out.fetched, skipped: out.skipped, removed };
       finishImportRun(db, runId, result);
       summaries.push({
         source: importer.source, label: importer.label, status: "ok", ...result,
@@ -72,7 +74,7 @@ export async function runImport(opts: { db?: Db; importers?: Importer[]; only?: 
       failImportRun(db, runId, err);
       summaries.push({
         source: importer.source, label: importer.label, status: "failed", fetched: 0, inserted: 0, updated: 0,
-        unchanged: 0, skipped: 0, unassigned: 0, warnings, error: err instanceof Error ? err.message : String(err),
+        unchanged: 0, skipped: 0, removed: 0, unassigned: 0, warnings, error: err instanceof Error ? err.message : String(err),
       });
     }
   }
