@@ -22,3 +22,6 @@ html { font-variant-numeric: tabular-nums; }
 body { background: var(--color-paper); color: var(--color-ink); }
 
 :focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
+
+/* Grid children default to min-width:auto, which lets a wide table stretch the page instead of scrolling inside it. */
+.grid > * { min-width: 0; }
