@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import fs from "node:fs";
 import * as XLSX from "xlsx";
 import { parseIdrAmount } from "../normalize/money.js";
 import { parseManualDateWib, toWibDate } from "../normalize/time.js";
@@ -26,7 +27,7 @@ export function manualOpsImporter(xlsxPath: string, opts: { automatedVendors?: s
     source: "manual_ops",
     label: "Manual ops sheet",
     async run(ctx: ImportContext): Promise<ImportOutput> {
-      const wb = XLSX.readFile(xlsxPath, { cellDates: false });
+      const wb = XLSX.read(fs.readFileSync(xlsxPath), { type: "buffer", cellDates: false });
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: true, blankrows: false });
 

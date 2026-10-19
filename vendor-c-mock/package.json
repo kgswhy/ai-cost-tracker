@@ -1,0 +1,5 @@
+{
+  "type": "commonjs",
+  "private": true,
+  "description": "Keeps the provided mock running as CommonJS while the root package is ESM."
+}
