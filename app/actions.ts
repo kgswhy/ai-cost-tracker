@@ -8,6 +8,9 @@ import { discardUpload, saveUpload, SOURCE_FILES, type FileSource } from "@/src/
 import { runConfiguredAlerts } from "@/src/alerts/run";
 import { resetAlerts, type BudgetAlert } from "@/src/alerts/index";
 import { normalizeLabel } from "@/src/normalize/project";
+import { configuredWebhook } from "@/src/alerts/run";
+import { buildPayload, detectProvider, maskWebhookUrl, postWebhook, PROVIDER_LABEL, TEST_MESSAGE, validateWebhookUrl } from "@/src/alerts/webhook";
+import { deleteSetting, setSetting, WEBHOOK_KEY } from "@/src/db/settings";
 
 export interface ActionResult {
   ok: boolean;
@@ -99,4 +102,34 @@ export async function resetAlertsAction(): Promise<ActionResult> {
   const n = resetAlerts(db);
   refresh();
   return { ok: true, message: `${n} catatan alert dihapus. Pengecekan berikutnya mengirim semuanya lagi.` };
+}
+
+/** Saves the webhook URL from the Budget alert page, after checking it looks like a Slack, Discord or https URL. */
+export async function saveWebhookAction(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const url = String(form.get("url") ?? "").trim();
+  const problem = validateWebhookUrl(url);
+  if (problem) return { ok: false, message: problem };
+  setSetting(getDb(), WEBHOOK_KEY, url);
+  refresh();
+  return { ok: true, message: `Tersimpan. Budget alert sekarang dikirim ke ${PROVIDER_LABEL[detectProvider(url)]} (${maskWebhookUrl(url)}). Klik "Kirim pesan uji" untuk memastikan pesannya sampai.` };
+}
+
+export async function testWebhookAction(): Promise<ActionResult> {
+  const hook = configuredWebhook(getDb());
+  if (!hook) return { ok: false, message: "Belum ada URL webhook. Simpan URL Slack atau Discord dulu." };
+  const provider = detectProvider(hook.url);
+  try {
+    await postWebhook(hook.url, buildPayload(provider, TEST_MESSAGE, null));
+    return { ok: true, message: `Pesan uji terkirim ke ${PROVIDER_LABEL[provider]}. Cek channel-nya.` };
+  } catch (err) {
+    return { ok: false, message: `Pesan uji gagal. ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+export async function clearWebhookAction(): Promise<ActionResult> {
+  const db = getDb();
+  deleteSetting(db, WEBHOOK_KEY);
+  refresh();
+  const fallback = configuredWebhook(db);
+  return { ok: true, message: fallback ? `URL dari halaman ini dihapus. Sekarang memakai webhook dari .env (${maskWebhookUrl(fallback.url)}).` : "URL dihapus. Budget alert hanya dicatat di aplikasi sampai URL baru disimpan." };
 }
