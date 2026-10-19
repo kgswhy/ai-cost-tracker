@@ -70,7 +70,7 @@ npm test
 npm run typecheck
 ```
 
-CI (`.github/workflows/ci.yml`) runs the typecheck and unit tests on every push and pull request, then boots the Vendor C mock, imports twice and fails if the second run inserts, updates or removes anything.
+CI (`.github/workflows/ci.yml`) runs the typecheck and unit tests on every push and pull request, then boots the Vendor C mock, imports twice and fails if the second run inserts, updates or removes anything. The Vendor C key comes from the `VENDOR_C_API_KEY` repository secret, so a fork needs to set it before the smoke job can run.
 
 ## Architecture
 

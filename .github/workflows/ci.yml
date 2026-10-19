@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     env:
-      VENDOR_C_API_KEY: vc_test_7Kq2mX9pL4   # test key of the bundled mock, documented in docs/vendor_c_api.md
+      VENDOR_C_API_KEY: ${{ secrets.VENDOR_C_API_KEY }}   # the mock's test key, stored as a repository secret
       DATABASE_PATH: ./ci.db
     steps:
       - uses: actions/checkout@v5
