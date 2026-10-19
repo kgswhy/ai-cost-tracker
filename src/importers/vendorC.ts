@@ -1,7 +1,7 @@
-import { usdCentsToIdr } from "../normalize/money.js";
-import { parseIsoUtc } from "../normalize/time.js";
-import type { UsageRecord } from "../types.js";
-import type { ImportContext, ImportOutput, Importer } from "./types.js";
+import { usdCentsToIdr } from "../normalize/money";
+import { parseIsoUtc } from "../normalize/time";
+import type { UsageRecord } from "../types";
+import type { ImportContext, ImportOutput, Importer } from "./types";
 
 interface VendorCRecord {
   id: string;

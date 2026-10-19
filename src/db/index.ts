@@ -1,8 +1,10 @@
 import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
-import type { Project, UsageRecord } from "../types.js";
-import { toWibString, toWibWeekStart } from "../normalize/time.js";
+import type { Project, UsageRecord } from "../types";
+import { toWibString, toWibWeekStart } from "../normalize/time";
+import { SCHEMA } from "./schema";
+import type { ProjectResolver } from "../normalize/project";
 
 export type Db = Database.Database;
 
@@ -11,8 +13,46 @@ export function openDatabase(file: string): Db {
   const db = new Database(file);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
-  db.exec(fs.readFileSync(path.join(import.meta.dirname, "schema.sql"), "utf8"));
+  db.exec(SCHEMA);
+  migrate(db);
   return db;
+}
+
+// Older databases from before a column existed get it added here.
+function migrate(db: Db): void {
+  const cols = (db.prepare(`PRAGMA table_info(import_runs)`).all() as { name: string }[]).map((c) => c.name);
+  if (!cols.includes("warnings")) db.exec(`ALTER TABLE import_runs ADD COLUMN warnings TEXT`);
+}
+
+export interface AliasRow { label: string; projectCode: string; createdAt: string }
+
+export function listUserAliases(db: Db): AliasRow[] {
+  return db.prepare(`SELECT label, project_code AS projectCode, created_at AS createdAt FROM project_aliases ORDER BY created_at DESC`).all() as AliasRow[];
+}
+
+export function addUserAlias(db: Db, label: string, projectCode: string): void {
+  db.prepare(
+    `INSERT INTO project_aliases (label, project_code, created_at) VALUES (?, ?, ?)
+     ON CONFLICT(label) DO UPDATE SET project_code = excluded.project_code, created_at = excluded.created_at`,
+  ).run(label, projectCode, new Date().toISOString());
+}
+
+/**
+ * Re-resolves project_code for every record from its stored label. Run after an
+ * alias is added so existing records move without a re-import. Returns how
+ * many rows changed.
+ */
+export function relinkRecords(db: Db, resolver: ProjectResolver): number {
+  const rows = db.prepare(`SELECT id, project_label AS label, project_code AS code FROM usage_records`).all() as { id: number; label: string; code: string | null }[];
+  const update = db.prepare(`UPDATE usage_records SET project_code = ? WHERE id = ?`);
+  let changed = 0;
+  db.transaction(() => {
+    for (const r of rows) {
+      const next = resolver.resolve(r.label);
+      if (next !== r.code) { update.run(next, r.id); changed++; }
+    }
+  })();
+  return changed;
 }
 
 export function upsertProjects(db: Db, projects: Project[]): void {
@@ -94,7 +134,7 @@ export function removeStaleRecords(db: Db, source: string, keep: string[]): numb
   return stale.length;
 }
 
-export interface ImportRunResult extends UpsertStats { fetched: number; skipped: number; removed: number }
+export interface ImportRunResult extends UpsertStats { fetched: number; skipped: number; removed: number; warnings?: string[] }
 
 export function startImportRun(db: Db, source: string): number {
   const r = db.prepare(`INSERT INTO import_runs (source, started_at, status) VALUES (?, ?, 'running')`)
@@ -104,8 +144,9 @@ export function startImportRun(db: Db, source: string): number {
 
 export function finishImportRun(db: Db, id: number, result: ImportRunResult): void {
   db.prepare(
-    `UPDATE import_runs SET finished_at = ?, status = 'ok', fetched = ?, inserted = ?, updated = ?, unchanged = ?, skipped = ?, removed = ? WHERE id = ?`,
-  ).run(new Date().toISOString(), result.fetched, result.inserted, result.updated, result.unchanged, result.skipped, result.removed, id);
+    `UPDATE import_runs SET finished_at = ?, status = 'ok', fetched = ?, inserted = ?, updated = ?, unchanged = ?, skipped = ?, removed = ?, warnings = ? WHERE id = ?`,
+  ).run(new Date().toISOString(), result.fetched, result.inserted, result.updated, result.unchanged, result.skipped, result.removed,
+    result.warnings?.length ? JSON.stringify(result.warnings) : null, id);
 }
 
 export function failImportRun(db: Db, id: number, error: unknown): void {

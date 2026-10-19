@@ -1,4 +1,4 @@
-import type { Db } from "./index.js";
+import type { Db } from "./index";
 
 export interface ProjectSpend {
   code: string;
@@ -90,4 +90,43 @@ export function totals(db: Db): { spendIdr: number; budgetIdr: number; recordCou
   const budget = db.prepare(`SELECT COALESCE(SUM(budget_idr),0) AS b FROM projects`).get() as { b: number };
   const un = db.prepare(`SELECT COALESCE(SUM(amount_idr),0) AS s FROM usage_records WHERE project_code IS NULL`).get() as { s: number };
   return { spendIdr: spend.s, budgetIdr: budget.b, recordCount: spend.n, unassignedIdr: un.s };
+}
+
+export interface UnassignedGroup { label: string; recordCount: number; spendIdr: number; sources: string; lastSeenWib: string }
+
+/** Unlinked records grouped by the label as typed, so one alias fixes a whole group. */
+export function unassignedGroups(db: Db): UnassignedGroup[] {
+  return db.prepare(
+    `SELECT project_label AS label, COUNT(*) AS recordCount, SUM(amount_idr) AS spendIdr,
+            GROUP_CONCAT(DISTINCT source) AS sources, MAX(occurred_at_wib) AS lastSeenWib
+     FROM usage_records WHERE project_code IS NULL
+     GROUP BY project_label ORDER BY spendIdr DESC`,
+  ).all() as UnassignedGroup[];
+}
+
+export interface RecordRow {
+  id: number; source: string; externalId: string; vendor: string; item: string; projectLabel: string;
+  occurredAtWib: string; originalAmount: number; originalCurrency: string; amountIdr: number; refundOf: string | null;
+}
+
+export function projectRecords(db: Db, code: string): RecordRow[] {
+  return db.prepare(
+    `SELECT id, source, external_id AS externalId, vendor, item, project_label AS projectLabel, occurred_at_wib AS occurredAtWib,
+            original_amount AS originalAmount, original_currency AS originalCurrency, amount_idr AS amountIdr, refund_of AS refundOf
+     FROM usage_records WHERE project_code = ? ORDER BY occurred_at_utc DESC`,
+  ).all(code) as RecordRow[];
+}
+
+export function projectWeekly(db: Db, code: string): { weekStart: string; spendIdr: number }[] {
+  return db.prepare(
+    `SELECT week_start_wib AS weekStart, SUM(amount_idr) AS spendIdr FROM usage_records WHERE project_code = ? GROUP BY week_start_wib ORDER BY week_start_wib`,
+  ).all(code) as { weekStart: string; spendIdr: number }[];
+}
+
+export function importRunHistory(db: Db, limit = 40): (ImportRunRow & { warnings: string[] })[] {
+  const rows = db.prepare(
+    `SELECT id, source, started_at AS startedAt, finished_at AS finishedAt, status, fetched, inserted, updated, unchanged, skipped, removed, warnings, error
+     FROM import_runs ORDER BY id DESC LIMIT ?`,
+  ).all(limit) as (ImportRunRow & { warnings: string | null })[];
+  return rows.map((r) => ({ ...r, warnings: r.warnings ? (JSON.parse(r.warnings) as string[]) : [] }));
 }

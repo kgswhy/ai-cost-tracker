@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCsv } from "../src/normalize/csv.js";
+import { parseCsv } from "../src/normalize/csv";
 
 describe("csv parser", () => {
   it("keeps quoted commas together and trims cells", () => {

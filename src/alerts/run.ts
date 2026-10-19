@@ -1,6 +1,6 @@
-import { config } from "../config.js";
-import type { Db } from "../db/index.js";
-import { consoleSender, runBudgetAlerts, webhookSender, type AlertRunResult } from "./index.js";
+import { config } from "../config";
+import type { Db } from "../db/index";
+import { consoleSender, runBudgetAlerts, webhookSender, type AlertRunResult } from "./index";
 
 /** Alerts wired to the environment: webhook if configured, console otherwise. */
 export function runConfiguredAlerts(db: Db, opts: { dryRun?: boolean; log?: (m: string) => void } = {}): Promise<AlertRunResult> {

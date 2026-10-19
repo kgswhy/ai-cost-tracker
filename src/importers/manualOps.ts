@@ -1,10 +1,10 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import * as XLSX from "xlsx";
-import { parseIdrAmount } from "../normalize/money.js";
-import { parseManualDateWib, toWibDate } from "../normalize/time.js";
-import type { UsageRecord } from "../types.js";
-import type { ImportContext, ImportOutput, Importer } from "./types.js";
+import { parseIdrAmount } from "../normalize/money";
+import { parseManualDateWib, toWibDate } from "../normalize/time";
+import type { UsageRecord } from "../types";
+import type { ImportContext, ImportOutput, Importer } from "./types";
 
 /**
  * The hand-maintained ops spreadsheet. Rules, all read off the data:

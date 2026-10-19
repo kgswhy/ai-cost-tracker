@@ -1,14 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
-import { config } from "../config.js";
-import { finishImportRun, failImportRun, openDatabase, removeStaleRecords, startImportRun, upsertProjects, upsertUsageRecords, type Db } from "../db/index.js";
-import { createProjectResolver, loadAliases, loadProjectsCsv } from "../normalize/project.js";
-import type { Rates } from "../types.js";
-import { manualOpsImporter } from "./manualOps.js";
-import type { ImportContext, Importer } from "./types.js";
-import { vendorAImporter } from "./vendorA.js";
-import { vendorBImporter } from "./vendorB.js";
-import { vendorCImporter } from "./vendorC.js";
+import { config } from "../config";
+import { finishImportRun, failImportRun, listUserAliases, openDatabase, removeStaleRecords, startImportRun, upsertProjects, upsertUsageRecords, type Db } from "../db/index";
+import { resolveSourceFile } from "./files";
+import { createProjectResolver, loadAliases, loadProjectsCsv } from "../normalize/project";
+import type { Rates } from "../types";
+import { manualOpsImporter } from "./manualOps";
+import type { ImportContext, Importer } from "./types";
+import { vendorAImporter } from "./vendorA";
+import { vendorBImporter } from "./vendorB";
+import { vendorCImporter } from "./vendorC";
 
 export interface SourceSummary {
   source: string;
@@ -26,21 +27,21 @@ export interface SourceSummary {
 }
 
 export function defaultImporters(): Importer[] {
-  const data = path.join(config.rootDir, "data");
   return [
-    vendorAImporter(path.join(data, "vendor_a.csv")),
-    vendorBImporter(path.join(data, "vendor_b.csv")),
+    vendorAImporter(resolveSourceFile("vendor_a").path),
+    vendorBImporter(resolveSourceFile("vendor_b").path),
     vendorCImporter({ baseUrl: config.vendorC.baseUrl, apiKey: config.vendorC.apiKey }),
-    manualOpsImporter(path.join(data, "manual_ops.xlsx")),
+    manualOpsImporter(resolveSourceFile("manual_ops").path),
   ];
 }
 
-export function loadReferenceData() {
-  const data = path.join(config.rootDir, "data");
-  const rates = JSON.parse(fs.readFileSync(path.join(data, "rates.json"), "utf8")) as Rates;
-  const projects = loadProjectsCsv(path.join(data, "projects.csv"));
+/** projects.csv, rates.json and the alias file, plus aliases added from the dashboard. */
+export function loadReferenceData(db?: Db) {
+  const rates = JSON.parse(fs.readFileSync(path.join(config.dataDir, "rates.json"), "utf8")) as Rates;
+  const projects = loadProjectsCsv(path.join(config.dataDir, "projects.csv"));
   const aliases = loadAliases(path.join(config.rootDir, "config", "project_aliases.json"));
-  return { rates, projects, resolver: createProjectResolver(projects, aliases) };
+  const userAliases = db ? listUserAliases(db) : [];
+  return { rates, projects, aliases, resolver: createProjectResolver(projects, aliases, userAliases) };
 }
 
 /**
@@ -50,8 +51,9 @@ export function loadReferenceData() {
  */
 export async function runImport(opts: { db?: Db; importers?: Importer[]; only?: string[] } = {}): Promise<SourceSummary[]> {
   const db = opts.db ?? openDatabase(config.databasePath);
-  const { rates, projects, resolver } = loadReferenceData();
+  const { rates, projects } = loadReferenceData();
   upsertProjects(db, projects);
+  const { resolver } = loadReferenceData(db);
 
   const importers = (opts.importers ?? defaultImporters()).filter((i) => !opts.only || opts.only.includes(i.source));
   const summaries: SourceSummary[] = [];
@@ -64,7 +66,7 @@ export async function runImport(opts: { db?: Db; importers?: Importer[]; only?: 
       const out = await importer.run(ctx);
       const stats = upsertUsageRecords(db, out.records);
       const removed = importer.fullSnapshot ? removeStaleRecords(db, importer.source, out.records.map((r) => r.externalId)) : 0;
-      const result = { ...stats, fetched: out.fetched, skipped: out.skipped, removed };
+      const result = { ...stats, fetched: out.fetched, skipped: out.skipped, removed, warnings };
       finishImportRun(db, runId, result);
       summaries.push({
         source: importer.source, label: importer.label, status: "ok", ...result,

@@ -1,4 +1,4 @@
-import type { Rates } from "../types.js";
+import type { Rates } from "../types";
 
 /**
  * Vendor B amounts come in as 13.21, "$70.9", "$1,036.15". Strip the symbol and

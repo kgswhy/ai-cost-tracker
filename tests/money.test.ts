@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { creditsToIdr, formatIdr, parseIdrAmount, parseUsdAmount, usdCentsToIdr, usdToIdr } from "../src/normalize/money.js";
+import { creditsToIdr, formatIdr, parseIdrAmount, parseUsdAmount, usdCentsToIdr, usdToIdr } from "../src/normalize/money";
 
 const rates = { credit_to_idr: 160, usd_to_idr: 16250 };
 

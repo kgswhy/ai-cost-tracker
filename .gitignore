@@ -10,3 +10,6 @@ dist/
 AI_Production_Cost_Tracker_Take_Home.pdf
 .claude/
 anti-slop/
+data/uploads/
+.next/
+next-env.d.ts

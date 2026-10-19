@@ -1,7 +1,7 @@
-import { config } from "../config.js";
-import { openDatabase } from "../db/index.js";
-import { formatAlertMessage, resetAlerts } from "../alerts/index.js";
-import { runConfiguredAlerts } from "../alerts/run.js";
+import { config } from "../config";
+import { openDatabase } from "../db/index";
+import { formatAlertMessage, resetAlerts } from "../alerts/index";
+import { runConfiguredAlerts } from "../alerts/run";
 
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");

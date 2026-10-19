@@ -6,9 +6,14 @@ function env(name: string, fallback: string): string {
   return v === undefined || v === "" ? fallback : v;
 }
 
+// Every entry point (CLI, Next.js) runs from the repository root.
+const rootDir = process.cwd();
+
 export const config = {
-  rootDir: path.resolve(import.meta.dirname, ".."),
-  databasePath: path.resolve(env("DATABASE_PATH", "./data/cost_tracker.db")),
+  rootDir,
+  dataDir: path.join(rootDir, "data"),
+  uploadsDir: path.join(rootDir, "data", "uploads"),
+  databasePath: path.resolve(rootDir, env("DATABASE_PATH", "./data/cost_tracker.db")),
   vendorC: {
     baseUrl: env("VENDOR_C_BASE_URL", "http://localhost:4010"),
     apiKey: process.env.VENDOR_C_API_KEY ?? "",
@@ -21,5 +26,4 @@ export const config = {
       .filter((n) => Number.isFinite(n) && n > 0)
       .sort((a, b) => a - b),
   },
-  port: Number(env("PORT", "3000")),
 };
