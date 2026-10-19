@@ -1,5 +1,7 @@
 # AI Production Cost Tracker
 
+[![CI](https://github.com/kgswhy/ai-cost-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/kgswhy/ai-cost-tracker/actions/workflows/ci.yml)
+
 Internal tool that replaces the weekly spreadsheet exercise: it pulls AI production spend from every vendor into one SQLite database, shows spend against budget per project on a dashboard, and posts a webhook alert before a project runs over budget.
 
 Sources: Vendor A (CSV, credits), Vendor B (CSV, USD), Vendor C (REST API, USD cents) and the ops team's manual spreadsheet (IDR). Everything is normalised to IDR and WIB (UTC+7) and linked to the projects in `data/projects.csv`.
@@ -67,6 +69,8 @@ With the provided data, GBX-01 (111.6%), INT-00 (91.5%) and KMD-02 (86.0%) trigg
 npm test
 npm run typecheck
 ```
+
+CI (`.github/workflows/ci.yml`) runs the typecheck and unit tests on every push and pull request, then boots the Vendor C mock, imports twice and fails if the second run inserts, updates or removes anything.
 
 ## Architecture
 
