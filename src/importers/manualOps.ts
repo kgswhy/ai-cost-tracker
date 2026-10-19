@@ -20,12 +20,16 @@ import type { ImportContext, ImportOutput, Importer } from "./types.js";
  * - The sheet has no row id. The invoice number in the description, with
  *   project, vendor, amount and date, identifies an expense; the same
  *   invoice typed twice (it happens) is imported once.
+ * - The sheet is the whole truth for its own rows: a row that is edited or
+ *   deleted in the sheet is removed from the database on the next import
+ *   (see fullSnapshot), so a typo fix does not leave a ghost record behind.
  */
 export function manualOpsImporter(xlsxPath: string, opts: { automatedVendors?: string[] } = {}): Importer {
   const automated = new Set((opts.automatedVendors ?? ["Vendor A"]).map((v) => v.toLowerCase()));
   return {
     source: "manual_ops",
     label: "Manual ops sheet",
+    fullSnapshot: true,
     async run(ctx: ImportContext): Promise<ImportOutput> {
       const wb = XLSX.read(fs.readFileSync(xlsxPath), { type: "buffer", cellDates: false });
       const sheet = wb.Sheets[wb.SheetNames[0]];
@@ -55,7 +59,9 @@ export function manualOpsImporter(xlsxPath: string, opts: { automatedVendors?: s
         const invoice = /INV-\d+/i.exec(desc)?.[0].toUpperCase() ?? "";
         const refStr = String(ref ?? "").trim();
 
-        const keyParts = [toWibDate(occurredAtUtc), projectLabel.toLowerCase(), vendorName.toLowerCase(), invoice || desc.toLowerCase(), amountIdr, refStr];
+        const projectCode = ctx.projects.resolve(projectLabel);
+        // Key on the resolved project so "snj04" and "SNJ-04" typed for the same invoice collapse to one record.
+        const keyParts = [toWibDate(occurredAtUtc), projectCode ?? projectLabel.toLowerCase(), vendorName.toLowerCase(), invoice || desc.toLowerCase(), amountIdr, refStr];
         const key = keyParts.join("|");
         if (seen.has(key)) {
           ctx.warn(`Manual sheet row ${i + 1}: duplicate of an earlier row (${vendorName}, ${invoice || desc}, ${amountIdr}) skipped`);
@@ -70,7 +76,7 @@ export function manualOpsImporter(xlsxPath: string, opts: { automatedVendors?: s
           vendor: vendorName,
           item: desc,
           projectLabel,
-          projectCode: ctx.projects.resolve(projectLabel),
+          projectCode,
           occurredAtUtc,
           originalAmount: amountIdr,
           originalCurrency: "IDR",

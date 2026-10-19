@@ -169,11 +169,11 @@ ${d.lastImport ? renderFlash(d.lastImport) : ""}
   <section>
     <h2>Last import per source</h2>
     <div class="tablewrap"><table>
-      <tr><th>Source</th><th>When (WIB)</th><th>Status</th><th class="num">Fetched</th><th class="num">New</th><th class="num">Updated</th><th class="num">Skipped</th></tr>
-      ${d.importRuns.length === 0 ? `<tr><td colspan="7" class="muted">No import has run yet.</td></tr>` : d.importRuns.map((r) => `<tr>
+      <tr><th>Source</th><th>When (WIB)</th><th>Status</th><th class="num">Fetched</th><th class="num">New</th><th class="num">Updated</th><th class="num">Skipped</th><th class="num">Removed</th></tr>
+      ${d.importRuns.length === 0 ? `<tr><td colspan="8" class="muted">No import has run yet.</td></tr>` : d.importRuns.map((r) => `<tr>
         <td>${esc(SOURCE_LABEL[r.source] ?? r.source)}</td><td>${esc(wibNow(r.startedAt))}</td>
         <td>${r.status === "ok" ? `<span class="badge ok">ok</span>` : `<span class="badge over">failed</span> <span class="muted">${esc(r.error ?? "")}</span>`}</td>
-        <td class="num">${r.fetched}</td><td class="num">${r.inserted}</td><td class="num">${r.updated}</td><td class="num">${r.skipped}</td></tr>`).join("")}
+        <td class="num">${r.fetched}</td><td class="num">${r.inserted}</td><td class="num">${r.updated}</td><td class="num">${r.skipped}</td><td class="num">${r.removed}</td></tr>`).join("")}
     </table></div>
   </section>
   <section>
@@ -210,7 +210,7 @@ function renderFlash(li: NonNullable<DashboardData["lastImport"]>): string {
   const failed = li.summaries.filter((s) => s.status === "failed");
   const lines = li.summaries.map((s) =>
     s.status === "ok"
-      ? `${esc(s.label)}: ${s.inserted} new, ${s.updated} updated, ${s.unchanged} unchanged, ${s.skipped} skipped`
+      ? `${esc(s.label)}: ${s.inserted} new, ${s.updated} updated, ${s.unchanged} unchanged, ${s.skipped} skipped${s.removed ? `, ${s.removed} removed` : ""}`
       : `${esc(s.label)}: failed (${esc(s.error)})`,
   );
   return `<div class="flash ${failed.length ? "err" : ""}"><strong>Import finished ${esc(wibNow(li.at))}.</strong> ${lines.join(" · ")}${li.alertsSent ? ` · ${li.alertsSent} budget alert(s) sent` : ""}</div>`;

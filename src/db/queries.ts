@@ -63,12 +63,12 @@ export function unassignedRecords(db: Db): UnassignedRecord[] {
 
 export interface ImportRunRow {
   id: number; source: string; startedAt: string; finishedAt: string | null; status: string;
-  fetched: number; inserted: number; updated: number; unchanged: number; skipped: number; error: string | null;
+  fetched: number; inserted: number; updated: number; unchanged: number; skipped: number; removed: number; error: string | null;
 }
 
 export function latestImportRuns(db: Db): ImportRunRow[] {
   return db.prepare(
-    `SELECT id, source, started_at AS startedAt, finished_at AS finishedAt, status, fetched, inserted, updated, unchanged, skipped, error
+    `SELECT id, source, started_at AS startedAt, finished_at AS finishedAt, status, fetched, inserted, updated, unchanged, skipped, removed, error
      FROM import_runs r WHERE id = (SELECT MAX(id) FROM import_runs WHERE source = r.source) ORDER BY source`,
   ).all() as ImportRunRow[];
 }

@@ -19,5 +19,10 @@ export interface ImportOutput {
 export interface Importer {
   source: UsageRecord["source"];
   label: string;
+  /**
+   * True when every run returns the complete set of records for this source,
+   * so records previously imported from it but absent now should be removed.
+   */
+  fullSnapshot?: boolean;
   run(ctx: ImportContext): Promise<ImportOutput>;
 }
