@@ -12,17 +12,17 @@ export default function ImportPage() {
     <>
       <PageTitle title="Import" lede="Bring this week's data in. Replace a vendor export or the ops sheet if you have a newer file, then run the import. Running it again never counts anything twice." />
       <div className="grid gap-5">
-        <Section title="1. Files in use" hint="Vendor C is pulled from its API. The other three are read from the file shown here: the bundled copy from the repository, or the latest file you uploaded.">
+        <Section title="1. Files in use" hint="Vendor C is pulled from its API. The other three are read from the file shown here: the sample file that came with the tool, or the latest file you uploaded.">
           <div className="grid gap-4">
             {d.files.map((f) => (
               <div key={f.source} className="grid gap-2 rounded-md border border-line p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
                 <div className="text-sm">
                   <p className="font-semibold">{f.label}</p>
                   <p className="text-ink-muted">
-                    {f.file.origin === "uploaded" ? <>Uploaded <code className="rounded bg-paper px-1 text-xs">{f.file.fileName}</code> on {wib(f.file.updatedAt)}</> : <>Bundled sample <code className="rounded bg-paper px-1 text-xs">data/{f.file.fileName}</code></>}
+                    {f.file.origin === "uploaded" ? <>Uploaded <code className="rounded bg-paper px-1 text-xs">{f.file.fileName}</code> on {wib(f.file.updatedAt)}</> : <>Sample file that came with the tool: <code className="rounded bg-paper px-1 text-xs">data/{f.file.fileName}</code></>}
                   </p>
                   {f.file.origin === "uploaded" ? (
-                    <div className="mt-2"><ActionButton action={discardUploadAction.bind(null, f.source)} label="Use the bundled sample again" busyLabel="Removing" secondary /></div>
+                    <div className="mt-2"><ActionButton action={discardUploadAction.bind(null, f.source)} label="Go back to the sample file" busyLabel="Removing" secondary /></div>
                   ) : null}
                 </div>
                 <UploadForm source={f.source} accept={f.accept.join(",")} action={uploadAction} />
@@ -35,7 +35,7 @@ export default function ImportPage() {
           </div>
         </Section>
 
-        <Section title="2. Run the import" hint="Reads all four sources, converts to IDR and WIB, links records to projects, then checks budgets and sends any new alert. Takes about ten seconds because Vendor C rate-limits.">
+        <Section title="2. Run the import" hint="Reads all four sources, converts to IDR and WIB, links transactions to projects, then checks budgets and sends any new alert. Takes about ten seconds because Vendor C limits how fast it answers.">
           <ActionButton action={runImportAction} label="Run import now" busyLabel="Importing, about 10 seconds" />
         </Section>
 

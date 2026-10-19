@@ -27,7 +27,7 @@ export type Status = { cls: "ok" | "warn" | "over"; label: string };
 export function statusOf(pctUsed: number, thresholds: number[]): Status {
   const warn = thresholds.find((t) => t < 100) ?? 80;
   if (pctUsed >= 100) return { cls: "over", label: "Over budget" };
-  if (pctUsed >= warn) return { cls: "warn", label: `Above ${warn}%` };
+  if (pctUsed >= warn) return { cls: "warn", label: `Warning, above ${warn}%` };
   return { cls: "ok", label: "On track" };
 }
 
@@ -42,4 +42,29 @@ export function paceText(p: PaceLike): string {
   const when = p.runsOutWeek ? weekLabel(p.runsOutWeek).replace("Week of ", "") : "";
   if (weeks > 52) return "More than a year left";
   return `Runs out in about ${weeks < 1 ? "a week" : `${Math.round(weeks)} weeks`}${when ? ` (${when})` : ""}`;
+}
+
+/** Compact rupiah for sentences and summaries: "Rp 165,8 jt", "Rp 2,4 M". Tables keep the full number. */
+export function idrShort(n: number): string {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  const fmt = (v: number) => v.toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+  if (abs >= 1e9) return `${sign}Rp ${fmt(abs / 1e9)} M`;
+  if (abs >= 1e6) return `${sign}Rp ${fmt(abs / 1e6)} jt`;
+  if (abs >= 1e3) return `${sign}Rp ${fmt(abs / 1e3)} rb`;
+  return `${sign}Rp ${abs}`;
+}
+
+/** "11 Oct" from a WIB timestamp "2026-10-11 21:33:00". */
+export function wibDay(wibTs: string): string {
+  const d = new Date(wibTs.slice(0, 10) + "T00:00:00Z");
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+}
+
+/** Whole days between a WIB timestamp and now (in WIB). */
+export function daysSinceWib(wibTs: string, now = new Date()): number {
+  const then = new Date(wibTs.slice(0, 10) + "T00:00:00Z").getTime();
+  const todayWib = new Date(now.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
+  const today = new Date(todayWib + "T00:00:00Z").getTime();
+  return Math.max(0, Math.round((today - then) / 86_400_000));
 }

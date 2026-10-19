@@ -21,7 +21,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ code: 
   return (
     <>
       <p className="mb-3 text-sm"><Link href="/" className="underline">Dashboard</Link> <span className="text-ink-muted">/ {p.code}</span></p>
-      <PageTitle title={`${p.code} ${p.name}`} lede={<>{p.client}. <strong className="text-ink">{idr(p.spendIdr)}</strong> of {idr(p.budgetIdr)} used ({pct(p.pctUsed)}), {p.recordCount} record(s).</>} action={<Badge status={s} />} />
+      <PageTitle title={`${p.code} ${p.name}`} lede={<>{p.client}. <strong className="text-ink">{idr(p.spendIdr)}</strong> of {idr(p.budgetIdr)} used ({pct(p.pctUsed)}), {p.recordCount} transaction(s).</>} action={<Badge status={s} />} />
       <div className="mb-6 max-w-xl"><BudgetBar pctUsed={p.pctUsed} status={s} /></div>
 
       <div className="grid gap-5">
@@ -32,7 +32,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ code: 
             <div><dt className="text-ink-muted">{d.pace.remainingIdr >= 0 ? "Remaining budget" : "Over budget by"}</dt><dd className="text-lg font-semibold">{idr(Math.abs(d.pace.remainingIdr))}</dd></div>
             <div><dt className="text-ink-muted">Projection</dt><dd className="text-lg font-semibold">{paceText(d.pace)}</dd></div>
           </dl>
-          <p className="mt-3 text-sm"><a href={`/export?project=${p.code}`} className="underline underline-offset-2">Download this project's records (CSV)</a></p>
+          <p className="mt-3 text-sm"><a href={`/export?project=${p.code}`} className="underline underline-offset-2">Download this project's transactions (CSV)</a></p>
         </Section>
         <div className="grid gap-5 lg:grid-cols-2">
           <Section title="By tool / vendor">
@@ -58,9 +58,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ code: 
           </Section>
         </div>
 
-        <Section title={`Records (${d.records.length})`} hint="Newest first. Refunds show as negative amounts and name the charge they reverse. A charge at least 8 times the usual amount for its vendor and item is marked so it gets checked against the invoice.">
-          {d.records.length === 0 ? <Empty>No records linked to this project.</Empty> : (
-            <Table label="Records for this project">
+        <Section title={`Transactions (${d.records.length})`} hint="Newest first. Refunds show as negative amounts and name the charge they reverse. A charge at least 8 times the usual amount for its vendor and item is marked so it gets checked against the invoice.">
+          {d.records.length === 0 ? <Empty>No transactions linked to this project.</Empty> : (
+            <Table label="Transactions for this project">
               <thead><tr><th>When (WIB)</th><th>Source</th><th>Vendor</th><th>Item</th><th>Label typed</th><th className="text-right">Original</th><th className="text-right">IDR</th></tr></thead>
               <tbody>{d.records.map((r) => (
                 <tr key={r.id} className={r.amountIdr < 0 ? "text-ink-muted" : ""}>
