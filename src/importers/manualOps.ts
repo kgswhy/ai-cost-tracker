@@ -7,22 +7,13 @@ import type { UsageRecord } from "../types.js";
 import type { ImportContext, ImportOutput, Importer } from "./types.js";
 
 /**
- * The hand-maintained ops spreadsheet. Rules, all discovered from the data:
- *
- * - Row 1 is a title, row 3 the header, then one row per expense; blank
- *   spacer rows and a final TOTAL row are ignored.
- * - Dates are typed by hand in local time (WIB) in several formats.
- * - Amounts are IDR, sometimes "Rp 1.850.000", sometimes a bare number.
- * - Rows whose vendor is "Vendor A" are the ops team's manual copies of
- *   charges that already arrive through vendor_a.csv (most carry the TXN ref;
- *   the rest match on credits x rate and date). They are skipped so the
- *   automated feed is the single source for Vendor A.
- * - The sheet has no row id. The invoice number in the description, with
- *   project, vendor, amount and date, identifies an expense; the same
- *   invoice typed twice (it happens) is imported once.
- * - The sheet is the whole truth for its own rows: a row that is edited or
- *   deleted in the sheet is removed from the database on the next import
- *   (see fullSnapshot), so a typo fix does not leave a ghost record behind.
+ * The hand-maintained ops spreadsheet. Rules, all read off the data:
+ * - Title row, header on row 3, blank spacers and a TOTAL row to skip.
+ * - Dates are WIB calendar days in several formats; amounts are IDR, "Rp 1.850.000" or bare.
+ * - "Vendor A" rows are hand copies of vendor_a.csv charges and are skipped.
+ * - No row id: invoice number + project + vendor + amount + date identifies a row, so a
+ *   twice-typed invoice imports once.
+ * - fullSnapshot: a row edited or deleted in the sheet is removed on the next import.
  */
 export function manualOpsImporter(xlsxPath: string, opts: { automatedVendors?: string[] } = {}): Importer {
   const automated = new Set((opts.automatedVendors ?? ["Vendor A"]).map((v) => v.toLowerCase()));
