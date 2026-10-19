@@ -48,6 +48,7 @@ function toAlert(p: ProjectSpend, thresholdPct: number): BudgetAlert {
 }
 
 export function formatAlertMessage(a: BudgetAlert): string {
+  // The glyph is the only severity cue in a chat feed, where the message has no colour.
   const head = a.thresholdPct >= 100 ? `🚨 Budget exceeded (${a.thresholdPct}%)` : `⚠️ Budget warning (${a.thresholdPct}%)`;
   return [
     `${head}: ${a.projectCode} ${a.projectName} (${a.client})`,

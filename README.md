@@ -42,7 +42,7 @@ Run it as often as you like. A record is identified by its source and vendor-sid
 
 ### Alerts
 
-When a project's spend crosses a threshold (default **80%**, plus 100%), one message is posted to `ALERT_WEBHOOK_URL` stating the project, current spend, budget and percentage used. The body carries the message as both `content` (Discord) and `text` (Slack), plus a structured `alert` object, so the same URL works for Discord, Slack or a mock endpoint.
+When a project's spend crosses a threshold (default 80%, plus 100%), one message is posted to `ALERT_WEBHOOK_URL` stating the project, current spend, budget and percentage used. The body carries the message as both `content` (Discord) and `text` (Slack), plus a structured `alert` object, so the same URL works for Discord, Slack or a mock endpoint.
 
 Alerts are evaluated automatically at the end of every import, and can be run on their own:
 
@@ -101,29 +101,42 @@ tests/                        vitest
 
 ### Key design decisions
 
-- **SQLite via better-sqlite3.** Single file, no server, synchronous API, transactions. Right size for a tool one team uses; swapping to Postgres later is a schema copy because the queries are plain SQL.
-- **One `UsageRecord` shape.** Each importer's only job is to turn its source's quirks into that shape. Everything downstream (upsert, queries, alerts, dashboard) is source-agnostic.
-- **Idempotency by natural key.** `UNIQUE(source, external_id)`. Vendor A/B/C provide stable ids. The spreadsheet has none, so its id is a hash of (WIB date, resolved project, vendor, invoice number, amount). A record that changes at the source (a corrected amount, a new alias) updates in place; the CLI reports `inserted / updated / unchanged` so a re-run is visibly a no-op.
-- **The ops sheet is a full snapshot.** Rows edited or deleted in the sheet are removed from the DB on the next import. Vendor exports are append-only feeds and are never pruned.
-- **Project aliases in a config file, not code.** Users type `kmd02`, `KMD 02`, `Kopi Malam`, `kopi malam drama`; all map to KMD-02. Unknown labels are kept with `project_code = NULL`, summed as "not linked" on the dashboard, and listed so ops can add the alias and re-import. The resolver refuses an alias claimed by two projects.
-- **Alerts are stateful and run after every import.** Threshold crossings are recorded; a project crossing 80% and 100% in the same run gets one message for the highest. Failed deliveries are not recorded, so they retry next run.
-- **No frontend framework.** One server-rendered page with Chart.js keeps the tool deployable as `npm start` and leaves the effort where the risk is: the data.
-- **Money is integer IDR.** Each record is converted and rounded individually, so totals are sums of whole rupiah.
+SQLite through better-sqlite3: a single file, no server, synchronous calls and real transactions. That is the right size for a tool one team uses, and the queries are plain SQL, so moving to Postgres later is a schema copy.
+
+Every importer produces the same `UsageRecord` shape. An importer's only job is to turn its source's quirks into that shape; the upsert, the queries, the alerts and the dashboard never know which vendor a row came from.
+
+Idempotency comes from a natural key, `UNIQUE(source, external_id)`. Vendors A, B and C ship stable ids. The spreadsheet has none, so its id is a hash of WIB date, resolved project, vendor, invoice number and amount. A record that changes at the source (a corrected amount, a new alias) updates in place, and the CLI prints inserted, updated and unchanged counts so a re-run is visibly a no-op.
+
+The ops sheet is treated as a full snapshot: rows edited or deleted in the sheet disappear from the database on the next import. Vendor exports are append-only feeds and are never pruned.
+
+Project aliases live in a config file, not in code. People type `kmd02`, `KMD 02`, `Kopi Malam` and `kopi malam drama`; all of them map to KMD-02. Unknown labels stay in the database with no project, show up as "not linked" on the dashboard, and are listed so ops can add the alias and re-import. The resolver refuses an alias claimed by two projects.
+
+Alerts keep state and run after every import. Each threshold crossing is recorded once; a project that passes 80% and 100% in the same run gets a single message for the highest. A failed delivery is not recorded, so it retries on the next run.
+
+There is no frontend framework. One server-rendered page with Chart.js keeps deployment at `npm start` and leaves the effort where the risk is, in the data.
+
+Money is integer IDR. Each record is converted and rounded on its own, so every total is a sum of whole rupiah.
+
+### Dashboard design
+
+The dashboard is deliberately plain. It is an internal page the ops team reads every day, so it should look like a report, not a product. The project table leads because the one decision this screen serves is "which project is about to run over". The budget bar is the recurring visual element, and colour appears only where it carries state: green, amber and red in the status column and the bars, blue on the single action button. Charts use one fixed hue per project on the whole page, so a colour means the same thing in every chart, and each chart has a table beneath it with the same numbers for screen readers and for when the Chart.js CDN is unreachable.
+
+The system font stack is a choice, not a default: nothing to download, and it matches the operating system the team already reads all day. The page ships in light mode only; it is used on office laptops in daylight and a single theme is one theme to verify.
 
 ## Assumptions
 
 Things the brief left open, and what I decided:
 
-1. **Refunds reduce spend.** Vendor A refund rows (negative credits with `ref_transaction_id`) are imported as negative records, so budgets reflect net spend and the audit trail keeps both lines.
-2. **Manual-sheet "Vendor A" rows are copies, not extra spend.** Every such row matches a `vendor_a.csv` transaction (by the TXN ref where present, otherwise credits × 160 and date). They are skipped; the CSV is the source of truth for Vendor A. Other vendors in the sheet (Tool D, Stock Footage, Stock Music, Freelance VO) have no other feed and are imported.
-3. **Manual-sheet dates are WIB calendar days** (the team types them locally; the TXN-ref rows confirm this where the UTC time crosses midnight). They are stored as midnight WIB. Vendor timestamps are UTC as their headers say.
-4. **`rnd`, `R&D` and `Internal` mean INT-00 (Internal R&D).** `sandbox`, `test`, `misc`, `new client pitch` and blank labels do not clearly belong to a project and are left unassigned rather than guessed.
-5. **A repeated Vendor B `line_id` is the same charge.** Four lines appear twice, byte-for-byte; they are imported once.
-6. **A repeated invoice number in the sheet is the same expense** (two cases, e.g. INV-913 typed twice with different formatting).
-7. **Weeks start on Monday, in WIB.**
-8. **Fixed rates for every record**, as `rates.json` instructs, regardless of date.
-9. **Two Vendor B charges of about $1,000** (roughly 15× the typical line) are imported as-is; they look like data-entry or vendor errors but there is no basis in the data to drop them. They are the reason KMD-02 and SNJ-04 carry most of their spend from Vendor B.
-10. **Thresholds are 80% and 100%.** The brief asks for 80%; 100% is added because "over budget" is a different conversation from "approaching budget". Configurable via `ALERT_THRESHOLDS`.
+1. Refunds reduce spend. Vendor A refund rows (negative credits with `ref_transaction_id`) are imported as negative records, so budgets reflect net spend and the audit trail keeps both lines.
+2. The "Vendor A" rows in the manual sheet are copies, not extra spend. Every one of them matches a `vendor_a.csv` transaction, by TXN ref where present and otherwise by credits × 160 and date. They are skipped; the CSV is the source of truth for Vendor A. The other vendors in the sheet (Tool D, Stock Footage, Stock Music, Freelance VO) have no other feed and are imported.
+3. Manual-sheet dates are WIB calendar days. The team types them locally, and the rows with a TXN ref confirm it where the UTC time crosses midnight. They are stored as midnight WIB. Vendor timestamps are UTC, as their headers say.
+4. `rnd`, `R&D` and `Internal` mean INT-00 (Internal R&D). `sandbox`, `test`, `misc`, `new client pitch` and blank labels do not clearly belong to a project and are left unassigned rather than guessed.
+5. A repeated Vendor B `line_id` is the same charge. Four lines appear twice, byte for byte, and are imported once.
+6. A repeated invoice number in the sheet is the same expense. There are two cases, such as INV-913 typed twice with different formatting.
+7. Weeks start on Monday, in WIB.
+8. Fixed rates apply to every record, as `rates.json` instructs, regardless of date.
+9. Two Vendor B charges of about $1,000, roughly 15 times the typical line, are imported as they are. They look like data-entry or vendor errors, but nothing in the data justifies dropping them. They are why KMD-02 and SNJ-04 carry most of their spend from Vendor B.
+10. Thresholds are 80% and 100%. The brief asks for 80%; 100% is added because "over budget" is a different conversation from "approaching budget". Both are configurable through `ALERT_THRESHOLDS`.
 
 ### Data quirks handled
 
@@ -136,14 +149,14 @@ Things the brief left open, and what I decided:
 
 ## Known limitations and next steps
 
-- **Spreadsheet identity is content-based.** Editing a sheet row changes its id; the snapshot pruning cleans up the old row, but alert history and `first_seen_at` for that row start over. The fix is to give the sheet an id column, or better, replace it with a small form on the dashboard that writes straight to the DB.
-- **Schema migrations are `CREATE TABLE IF NOT EXISTS` only.** Fine for a fresh file; a real deployment would use a migration tool.
-- **Rates are fixed.** Real invoices arrive in USD at a date-specific rate; the model keeps original amount and currency so dated rates can be applied later.
-- **No authentication on the dashboard** and no CSRF protection on the import button; it is meant to sit on an internal network. Add SSO or at least basic auth before exposing it.
-- **Alerts only fire upward.** There is no "back under budget" notice, no digest, and no per-project threshold overrides.
-- **Import runs in the web process.** Good enough for ~400 records; with more sources it should move to a scheduled job (cron or a queue) with the dashboard reading results only.
-- **Outlier detection** (the $1,000 Vendor B lines) would be a cheap, valuable addition: flag records more than N× the median for their vendor and show them for review.
-- **Filtering** by date range or client on the dashboard, and CSV export of the normalised records for finance.
+- Spreadsheet identity is content-based. Editing a sheet row changes its id; the snapshot pruning removes the old row, but alert history and `first_seen_at` for that row start over. The fix is an id column in the sheet, or better, a small form on the dashboard that writes straight to the database.
+- Schema migrations are `CREATE TABLE IF NOT EXISTS` only. Fine for a fresh file; a real deployment would use a migration tool.
+- Rates are fixed. Real invoices arrive in USD at a date-specific rate; the model keeps the original amount and currency so dated rates can be applied later.
+- The dashboard has no authentication and the import button has no CSRF protection. It is meant for an internal network; add SSO or at least basic auth before exposing it.
+- Alerts only fire upward. There is no "back under budget" notice, no digest, and no per-project threshold overrides.
+- Import runs inside the web process. That is fine for a few hundred records; with more sources it should move to a scheduled job, with the dashboard only reading results.
+- Outlier detection would be cheap and useful: flag records far above the median for their vendor (the two $1,000 Vendor B lines) and show them for review.
+- Filtering by date range or client, and a CSV export of the normalised records for finance.
 
 ## Notes on the provided materials
 

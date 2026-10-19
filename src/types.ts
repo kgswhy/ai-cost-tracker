@@ -1,25 +1,19 @@
-/** One normalized spend line, regardless of which vendor it came from. */
+/** One spend line in the shape every importer produces. */
 export interface UsageRecord {
-  /** Which import source produced it: vendor_a | vendor_b | vendor_c | manual_ops */
   source: Source;
-  /** Vendor-side identifier. Stable per source; used for idempotent upserts. */
+  /** Stable per source; (source, externalId) is the idempotency key. */
   externalId: string;
-  /** Display name of the tool / vendor for the breakdown (e.g. "Vendor A", "Stock Music"). */
   vendor: string;
-  /** What was bought: model, product, service, or free-text description. */
   item: string;
-  /** Free-text project label as the user typed it in the vendor tool. */
+  /** The label as typed in the vendor tool, kept for the unassigned list. */
   projectLabel: string;
-  /** Canonical project code, or null when the label matched nothing. */
+  /** null when the label matched no code, name or alias. */
   projectCode: string | null;
-  /** Event time in UTC. */
   occurredAtUtc: Date;
-  /** Original amount and currency before conversion. */
   originalAmount: number;
   originalCurrency: "CREDIT" | "USD" | "IDR";
-  /** Amount in IDR after conversion. Negative for refunds. */
+  /** Negative for refunds. */
   amountIdr: number;
-  /** For refunds: the external id of the charge being reversed. */
   refundOf?: string | null;
 }
 
