@@ -8,3 +8,4 @@ dist/
 .DS_Store
 # assignment brief, not part of the deliverable
 AI_Production_Cost_Tracker_Take_Home.pdf
+.claude/
