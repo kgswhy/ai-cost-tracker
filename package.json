@@ -5,7 +5,7 @@
   "description": "Consolidates AI production spend from several vendors into one database, dashboard and budget alerts.",
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.11"
   },
   "scripts": {
     "mock:vendor-c": "node vendor-c-mock/server.js",
