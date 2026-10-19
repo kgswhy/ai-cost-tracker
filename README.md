@@ -124,7 +124,7 @@ src/                       the core, no framework, used by the CLI and the app
                            webhook.ts detects Slack/Discord, builds each payload, validates and posts with a timeout
   cli/                     import.ts, alerts.ts
 src/analysis/              pace projection, outlier detection, CSV export: pure functions with their own tests
-app/                       Next.js 15 (App Router): / dashboard, /import, /review, /charges, /alerts, /projects/[code], /export (CSV)
+app/                       Next.js 16 (App Router): / dashboard, /import, /review, /charges, /alerts, /projects/[code], /export (CSV)
   actions.ts               server actions: run import, upload/discard a file, link or dismiss a name, check/reset alerts,
                            save/test/clear the webhook
   lib/data.ts              one loader per page plus the sidebar's, all reading SQLite on the server
@@ -155,7 +155,7 @@ Paths resolve from the repository, not from the folder a command is started in, 
 
 Alerts keep state and run after every import and after every label link. Each threshold crossing is recorded once; a project that passes 80% and 100% in the same run gets a single message for the highest. A failed delivery is not recorded, so it retries on the next run.
 
-Next.js with server components: every page reads SQLite on the server and ships HTML, charts included (they are plain CSS bars); the only client code is the forms and the phone menu. Server actions replace an API layer for everything a user can do: import, uploads, linking or dismissing a name, alert checks, and the webhook setting. There is no build step for the CLI, which still runs through tsx.
+Next.js with server components: every page reads SQLite on the server and ships HTML, charts included (they are plain CSS bars); the only client code is the forms and the phone menu. Server actions replace an API layer for everything a user can do: import, uploads, linking or dismissing a name, alert checks, and the webhook setting. There is no build step for the CLI, which still runs through tsx. The app builds with Turbopack; the paths to uploads and sample files carry a `turbopackIgnore` marker, because they are runtime data and would otherwise make the build trace the whole project into the server output.
 
 Money is integer IDR. Each record is converted and rounded on its own, so every total is a sum of whole rupiah.
 
@@ -194,19 +194,15 @@ Things the brief left open, and what I decided:
 
 ## Known limitations and next steps
 
-- Spreadsheet identity is content-based. Editing a sheet row changes its id; the snapshot pruning removes the old row, but alert history and `first_seen_at` for that row start over. The fix is an id column in the sheet, or better, a small form on the dashboard that writes straight to the database so the sheet goes away.
+- Spreadsheet identity is content-based. Editing a sheet row changes its id, so the import log shows it as one new row and one removed row instead of an update, and its `first_seen_at` starts over. Totals and alerts are unaffected, because alerts are recorded per project, not per row. The fix is an id column in the sheet, or better, a small form on the dashboard that writes straight to the database so the sheet goes away.
 - Schema migrations are `CREATE TABLE IF NOT EXISTS` plus one additive column check. Fine for a fresh file; a real deployment would use a migration tool.
 - Rates are fixed. Real invoices arrive in USD at a date-specific rate; the model keeps the original amount and currency so dated rates can be applied later.
 - There is no authentication. The app is meant for an internal network; add SSO or at least basic auth before exposing it. Without it, anyone who can open the app can also change where budget alerts are sent.
 - Uploads are checked by extension and parsed by the same strict importers with a patched SheetJS, but there is no file size cap beyond the 20 MB request limit and no malware scanning.
-- `npm audit` reports PostCSS inside Next.js 15. PostCSS only processes this repository's own CSS at build time, never user input; the fix needs Next 16, a breaking upgrade left for later.
-- The import runs only when someone presses it or runs the CLI. A nightly scheduled job (cron, or a queue) is the next step, with the app only reading results.
 - Unusual charges are flagged, not resolved. Marking one "checked, it is real" or "disputed with the vendor" needs a small table and a form; today the flag stays until the data changes.
 - Alerts only fire upward. There is no "back under budget" notice, no digest, and no per-project threshold overrides.
 - No filtering by date range or client on the dashboard yet.
-- Import runs inside the web process. That is fine for a few hundred records; with more sources it should move to a scheduled job, with the app only reading results.
-- Outliers are flagged, not resolved. Marking a charge as "checked, it is real" or "disputed with the vendor" would need a small table and a form; today the list just stays until the data changes.
-- Filtering by date range or client on the dashboard.
+- The import runs only when someone presses it or runs the CLI, and it runs inside the web process. That is fine for a few hundred records; with more sources a nightly scheduled job (cron, or a queue) should do it, with the app only reading results.
 
 ## Notes on the provided materials
 
