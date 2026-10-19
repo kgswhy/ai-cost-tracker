@@ -22,6 +22,9 @@ export interface ActionResult {
 // The sidebar counts live in the layout, so every action refreshes the whole tree.
 const refresh = () => revalidatePath("/", "layout");
 
+// Without a webhook an alert is only recorded in the app, so it must not be called sent.
+const alertVerb = (r: { delivered: boolean }) => (r.delivered ? "terkirim" : "dicatat (belum ada webhook)");
+
 const alertLine = (a: BudgetAlert) => `${a.projectCode} lewat ${a.thresholdPct}% (sekarang ${a.pctUsed.toFixed(1).replace(".", ",")}%)`;
 
 export async function runImportAction(): Promise<ActionResult> {
@@ -30,7 +33,7 @@ export async function runImportAction(): Promise<ActionResult> {
   const alerts = await runConfiguredAlerts(db);
   refresh();
   const failed = summaries.filter((s) => s.status === "failed");
-  const details = alerts.sent.map((a) => "Budget alert terkirim: " + alertLine(a));
+  const details = alerts.sent.map((a) => `Budget alert ${alertVerb(alerts)}: ${alertLine(a)}`);
   for (const f of alerts.failed) details.push(`Budget alert untuk ${f.alert.projectCode} gagal: ${f.error}`);
   return {
     ok: failed.length === 0,
@@ -82,7 +85,7 @@ export async function linkLabelAction(_prev: ActionResult | null, form: FormData
   const { resolver } = loadReferenceData(db);
   const moved = relinkRecords(db, resolver);
   const alerts = await runConfiguredAlerts(db);
-  const sent = alerts.sent.map((a) => " Budget alert terkirim: " + alertLine(a) + ".").join("");
+  const sent = alerts.sent.map((a) => ` Budget alert ${alertVerb(alerts)}: ${alertLine(a)}.`).join("");
   done(`Tersimpan. ${moved} transaksi "${label}" pindah ke ${choice}, dan import berikutnya ikut memakai pilihan ini.${sent}`);
   return { ok: true, message: "" };
 }
@@ -94,7 +97,7 @@ export async function checkAlertsAction(): Promise<ActionResult> {
   if (r.sent.length === 0 && r.failed.length === 0) return { ok: true, message: "Tidak ada yang baru. Semua batas yang terlewati sudah diberitahukan." };
   return {
     ok: r.failed.length === 0,
-    message: `${r.sent.length} budget alert terkirim${r.failed.length ? `, ${r.failed.length} gagal` : ""}.`,
+    message: `${r.sent.length} budget alert ${alertVerb(r)}${r.failed.length ? `, ${r.failed.length} gagal` : ""}.`,
     details: [...r.sent.map(alertLine), ...r.failed.map((f) => `${f.alert.projectCode}: ${f.error}`)],
   };
 }

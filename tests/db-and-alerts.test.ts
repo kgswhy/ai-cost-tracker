@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { openDatabase, upsertProjects, upsertUsageRecords } from "../src/db/index";
 import { projectSpend, totals } from "../src/db/queries";
-import { pendingAlerts, runBudgetAlerts, type AlertSender, type BudgetAlert } from "../src/alerts/index";
+import { consoleSender, pendingAlerts, runBudgetAlerts, type AlertSender, type BudgetAlert } from "../src/alerts/index";
 import type { UsageRecord } from "../src/types";
 
 const projects = [
@@ -67,6 +67,15 @@ describe("budget alerts", () => {
     upsertUsageRecords(db, [rec({ externalId: "b", amountIdr: 200_000 })]); // now 105%
     await runBudgetAlerts(db, { thresholds: [80, 100], sender: s, webhookConfigured: true });
     expect(s.sent.map((a) => a.thresholdPct)).toEqual([80, 100]);
+  });
+
+  it("reports alerts as recorded, not delivered, when no webhook is set", async () => {
+    const db = freshDb();
+    upsertUsageRecords(db, [rec({ externalId: "a", amountIdr: 850_000 })]);
+    const recorded = await runBudgetAlerts(db, { thresholds: [80], sender: consoleSender(() => {}), webhookConfigured: false });
+    expect(recorded).toMatchObject({ delivered: false, sent: [{ projectCode: "GBX-01" }] });
+    const delivered = await runBudgetAlerts(db, { thresholds: [80], sender: sender(), webhookConfigured: true });
+    expect(delivered).toMatchObject({ delivered: true, sent: [{ projectCode: "GBX-01" }] });
   });
 
   it("sends one message for the highest threshold when several are crossed at once", async () => {

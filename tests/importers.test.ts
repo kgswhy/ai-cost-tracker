@@ -86,7 +86,8 @@ describe("manual ops importer", () => {
       ["Stock Music", 450_000, "SNJ-04"],
       ["Stock Music", 450_000, null],
     ]);
-    expect(c.warnings.join("\n")).toMatch(/INV-928/);
+    // Row 7 in Excel: the title and the blank row above the header count, so ops can find it.
+    expect(c.warnings).toEqual(["Spreadsheet manual baris 7: sama dengan baris sebelumnya (Stock Music, INV-928, Rp 450.000), dihitung sekali."]);
   });
   it("gives the same external id on every run so re-imports are idempotent", async () => {
     const file = sheet([["Tanggal", "Project", "Tool / Vendor", "Keterangan", "Nominal", "Ref"], ["2026-10-01", "greenbox", "Tool D", "Seat - INV-1", 1000, ""]]);
@@ -130,7 +131,7 @@ describe("Vendor C client", () => {
   });
   it("gives up after maxAttempts", async () => {
     const api = fakeApi([500, 500, 500], {});
-    await expect(fetchAllVendorCUsage({ baseUrl: "http://x", apiKey: "k", maxAttempts: 3, fetchImpl: api.fetchImpl, sleep })).rejects.toThrow(/after 3 attempts/);
+    await expect(fetchAllVendorCUsage({ baseUrl: "http://x", apiKey: "k", maxAttempts: 3, fetchImpl: api.fetchImpl, sleep })).rejects.toThrow(/setelah 3 percobaan/);
   });
 });
 

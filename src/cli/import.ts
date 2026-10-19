@@ -31,7 +31,7 @@ const failed = summaries.filter((s) => s.status === "failed").length;
 if (!process.argv.includes("--no-alerts")) {
   const alerts = await runConfiguredAlerts(db);
   if (alerts.sent.length || alerts.failed.length) console.log("");
-  for (const a of alerts.sent) console.log(`alert sent: ${formatAlertMessage(a).replace(/\n/g, " | ")}`);
+  for (const a of alerts.sent) console.log(`${alerts.delivered ? "alert sent" : "alert recorded, no webhook set"}: ${formatAlertMessage(a).replace(/\n/g, " | ")}`);
   for (const f of alerts.failed) console.log(`✗ alert ${f.alert.projectCode} @${f.alert.thresholdPct}% failed: ${f.error}`);
 }
 
