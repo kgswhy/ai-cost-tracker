@@ -8,7 +8,7 @@ Sources: Vendor A (CSV, credits), Vendor B (CSV, USD), Vendor C (REST API, USD c
 
 ## Setup
 
-Requires Node.js 20.11 or newer (tested on 22). No other services.
+Requires Node.js 22.12 or newer (the SQLite driver, better-sqlite3, needs Node 22, and the test runner needs 22.12). With nvm, `nvm use` picks the version from `.nvmrc`. No other services.
 
 ```bash
 npm install
