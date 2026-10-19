@@ -21,11 +21,11 @@ export function vendorBImporter(csvPath: string): Importer {
       let skipped = 0;
       for (const row of rows) {
         const id = row.line_id;
-        if (!id) { ctx.warn(`Vendor B: row without line_id skipped`); skipped++; continue; }
+        if (!id) { ctx.warn(`Vendor B: baris tanpa line_id dilewati.`); skipped++; continue; }
         const usd = parseUsdAmount(row.usd_amount);
         const prev = seen.get(id);
         if (prev !== undefined) {
-          if (prev !== usd) ctx.warn(`Vendor B: line_id ${id} repeated with a different amount (${prev} vs ${usd}); keeping the first`);
+          if (prev !== usd) ctx.warn(`Vendor B: tagihan ${id} muncul dua kali dengan nominal berbeda ($${prev} dan $${usd}). Yang pertama dipakai, cek ke invoice vendor.`);
           skipped++;
           continue;
         }

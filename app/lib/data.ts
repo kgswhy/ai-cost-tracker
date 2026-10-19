@@ -179,6 +179,7 @@ export function alertsPageData(selected?: string) {
     pending: pendingAlerts(db, config.alerts.thresholds, Boolean(webhook)),
     sent,
     current: sent.find((a) => a.key === selected) ?? sent[0] ?? null,
-    projectsSent: new Set(sent.map((a) => a.projectCode)).size,
+    delivered: sent.filter((a) => a.delivery !== "console").length,
+    projectsSent: new Set(sent.filter((a) => a.delivery !== "console").map((a) => a.projectCode)).size,
   };
 }

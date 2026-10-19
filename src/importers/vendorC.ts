@@ -43,7 +43,7 @@ export async function fetchAllVendorCUsage(opts: VendorCClientOptions, log: (m: 
   const baseDelay = opts.baseDelayMs ?? 500;
   const fetchImpl = opts.fetchImpl ?? fetch;
   const sleep = opts.sleep ?? defaultSleep;
-  if (!opts.apiKey) throw new Error("VENDOR_C_API_KEY is not set");
+  if (!opts.apiKey) throw new Error("API key Vendor C belum diatur. Minta developer mengisi VENDOR_C_API_KEY.");
 
   const all: VendorCRecord[] = [];
   let page = 1;
@@ -55,30 +55,30 @@ export async function fetchAllVendorCUsage(opts: VendorCClientOptions, log: (m: 
       try {
         res = await fetchImpl(url, { headers: { Authorization: `Bearer ${opts.apiKey}` } });
       } catch (err) {
-        if (attempt === maxAttempts) throw new Error(`Vendor C unreachable at ${url}: ${(err as Error).message}`);
+        if (attempt === maxAttempts) throw new Error(`Vendor C tidak bisa dihubungi di ${url} (${(err as Error).message}). Coba import lagi nanti.`);
         const wait = baseDelay * 2 ** (attempt - 1);
-        log(`Vendor C page ${page}: network error, retry ${attempt}/${maxAttempts} in ${wait}ms`);
+        log(`Vendor C halaman ${page}: koneksi gagal, dicoba lagi (${attempt} dari ${maxAttempts}) setelah ${wait} ms.`);
         await sleep(wait);
         continue;
       }
       if (res.status === 200) { body = (await res.json()) as VendorCPage; break; }
       if (res.status === 429) {
         const retryAfter = Number(res.headers.get("retry-after")) || 1;
-        log(`Vendor C page ${page}: rate limited, waiting ${retryAfter}s (attempt ${attempt}/${maxAttempts})`);
-        if (attempt === maxAttempts) throw new Error(`Vendor C page ${page}: still rate limited after ${maxAttempts} attempts`);
+        log(`Vendor C halaman ${page}: terlalu banyak permintaan, menunggu ${retryAfter} detik (${attempt} dari ${maxAttempts}).`);
+        if (attempt === maxAttempts) throw new Error(`Vendor C halaman ${page}: masih menolak karena terlalu banyak permintaan setelah ${maxAttempts} percobaan. Coba import lagi nanti.`);
         await sleep(retryAfter * 1000);
         continue;
       }
       if (res.status >= 500) {
         const wait = baseDelay * 2 ** (attempt - 1);
-        log(`Vendor C page ${page}: HTTP ${res.status}, retry ${attempt}/${maxAttempts} in ${wait}ms`);
-        if (attempt === maxAttempts) throw new Error(`Vendor C page ${page}: HTTP ${res.status} after ${maxAttempts} attempts`);
+        log(`Vendor C halaman ${page}: server menjawab HTTP ${res.status}, dicoba lagi (${attempt} dari ${maxAttempts}) setelah ${wait} ms.`);
+        if (attempt === maxAttempts) throw new Error(`Vendor C halaman ${page}: server masih menjawab HTTP ${res.status} setelah ${maxAttempts} percobaan. Coba import lagi nanti.`);
         await sleep(wait);
         continue;
       }
-      throw new Error(`Vendor C page ${page}: HTTP ${res.status} ${await res.text()}`);
+      throw new Error(`Vendor C menolak permintaan (HTTP ${res.status}: ${await res.text()}). Periksa API key dan alamat Vendor C.`);
     }
-    if (!body) throw new Error(`Vendor C page ${page}: gave up`);
+    if (!body) throw new Error(`Vendor C halaman ${page}: tidak ada jawaban yang bisa dipakai. Coba import lagi nanti.`);
     all.push(...body.data);
     if (!body.has_more || body.data.length === 0) break;
     page++;
@@ -96,7 +96,7 @@ export function vendorCImporter(opts: VendorCClientOptions): Importer {
       const seen = new Set<string>();
       let skipped = 0;
       for (const r of raw) {
-        if (seen.has(r.id)) { ctx.warn(`Vendor C: id ${r.id} returned twice (page boundary shift?) - kept once`); skipped++; continue; }
+        if (seen.has(r.id)) { ctx.warn(`Vendor C: transaksi ${r.id} terkirim dua kali oleh API, dihitung sekali.`); skipped++; continue; }
         seen.add(r.id);
         records.push({
           source: "vendor_c",

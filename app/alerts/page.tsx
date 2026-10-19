@@ -28,7 +28,11 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
           note={<span className="text-xs text-ink-muted">{d.webhook ? d.webhook.masked : "Alert hanya dicatat di sini"}</span>}
         />
         <Figure label="Batas peringatan" value={<span className="text-base">{d.thresholds.map((t) => `${t}%`).join(" dan ")}</span>} />
-        <Figure label="Sudah terkirim" value={<span className="text-base">{d.sent.length} pesan, {d.projectsSent} proyek</span>} />
+        <Figure
+          label="Sudah terkirim"
+          value={<span className="text-base">{d.delivered} pesan, {d.projectsSent} proyek</span>}
+          note={d.sent.length > d.delivered ? <span className="text-xs text-ink-muted">{d.sent.length - d.delivered} lainnya hanya dicatat, dikirim begitu webhook disimpan</span> : undefined}
+        />
       </section>
 
       <Section id="tujuan" title="Tujuan budget alert" hint="Tempel URL webhook dari channel Slack atau Discord tim. Aplikasi mengenali jenisnya dari URL dan mengirim pesan dalam format yang benar.">

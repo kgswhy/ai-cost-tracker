@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import * as XLSX from "xlsx";
-import { parseIdrAmount } from "../normalize/money";
+import { formatIdr, parseIdrAmount } from "../normalize/money";
 import { parseManualDateWib, toWibDate } from "../normalize/time";
 import type { UsageRecord } from "../types";
 import type { ImportContext, ImportOutput, Importer } from "./types";
@@ -24,7 +24,9 @@ export function manualOpsImporter(xlsxPath: string, opts: { automatedVendors?: s
     async run(ctx: ImportContext): Promise<ImportOutput> {
       const wb = XLSX.read(fs.readFileSync(xlsxPath), { type: "buffer", cellDates: false });
       const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: true, blankrows: false });
+      // Blank rows are kept so an index maps to a row number the ops team can find in Excel.
+      const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: true, blankrows: true });
+      const firstRow = sheet["!ref"] ? XLSX.utils.decode_range(sheet["!ref"]).s.r + 1 : 1;
 
       const headerIdx = rows.findIndex((r) => String(r[0] ?? "").trim().toLowerCase() === "tanggal");
       if (headerIdx < 0) throw new Error("Spreadsheet manual tidak punya baris judul kolom yang diawali Tanggal di sheet pertamanya. Pastikan yang diunggah adalah spreadsheet rekap biaya yang benar, dengan kolom: Tanggal, Project, Tool / Vendor, Keterangan, Nominal, Ref.");
@@ -35,7 +37,7 @@ export function manualOpsImporter(xlsxPath: string, opts: { automatedVendors?: s
       let skipped = 0;
 
       for (let i = headerIdx + 1; i < rows.length; i++) {
-        const [date, project, vendor, description, amount, ref] = rows[i] as unknown[];
+        const [date, project, vendor, description, amount, ref] = (rows[i] ?? []) as unknown[];
         const desc = String(description ?? "").trim();
         if (desc.toUpperCase() === "TOTAL" || (date == null && project == null && vendor == null)) continue;
         fetched++;
@@ -55,7 +57,7 @@ export function manualOpsImporter(xlsxPath: string, opts: { automatedVendors?: s
         const keyParts = [toWibDate(occurredAtUtc), projectCode ?? projectLabel.toLowerCase(), vendorName.toLowerCase(), invoice || desc.toLowerCase(), amountIdr, refStr];
         const key = keyParts.join("|");
         if (seen.has(key)) {
-          ctx.warn(`Manual sheet row ${i + 1}: duplicate of an earlier row (${vendorName}, ${invoice || desc}, ${amountIdr}) skipped`);
+          ctx.warn(`Spreadsheet manual baris ${firstRow + i}: sama dengan baris sebelumnya (${vendorName}, ${invoice || desc}, ${formatIdr(amountIdr)}), dihitung sekali.`);
           skipped++;
           continue;
         }

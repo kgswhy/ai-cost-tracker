@@ -22,8 +22,8 @@ export function vendorAImporter(csvPath: string): Importer {
       let skipped = 0;
       for (const row of rows) {
         const id = row.transaction_id;
-        if (!id) { ctx.warn(`Vendor A: row without transaction_id skipped`); skipped++; continue; }
-        if (seen.has(id)) { ctx.warn(`Vendor A: duplicate transaction_id ${id} skipped`); skipped++; continue; }
+        if (!id) { ctx.warn(`Vendor A: baris tanpa transaction_id dilewati.`); skipped++; continue; }
+        if (seen.has(id)) { ctx.warn(`Vendor A: transaksi ${id} muncul dua kali di file, dihitung sekali.`); skipped++; continue; }
         seen.add(id);
         const credits = Number(row.credits);
         if (!Number.isFinite(credits)) throw new Error(`Transaksi ${id} di file Vendor A: kolom credits berisi "${row.credits}", bukan angka. Perbaiki baris itu atau ambil ulang export-nya.`);

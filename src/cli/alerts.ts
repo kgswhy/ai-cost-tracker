@@ -20,6 +20,7 @@ console.log(`Thresholds: ${config.alerts.thresholds.join("%, ")}% · delivery: $
 
 const result = await runConfiguredAlerts(db, { dryRun });
 if (result.sent.length === 0 && result.failed.length === 0) console.log("Nothing new to alert.");
-for (const a of result.sent) console.log(`${dryRun ? "would send" : "sent"}: ${formatAlertMessage(a).replace(/\n/g, " | ")}`);
+const verb = result.delivered ? (dryRun ? "would send" : "sent") : (dryRun ? "would record, no webhook set" : "recorded, no webhook set");
+for (const a of result.sent) console.log(`${verb}: ${formatAlertMessage(a).replace(/\n/g, " | ")}`);
 for (const f of result.failed) console.log(`FAILED ${f.alert.projectCode} @${f.alert.thresholdPct}%: ${f.error}`);
 process.exitCode = result.failed.length ? 1 : 0;

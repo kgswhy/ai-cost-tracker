@@ -79,11 +79,12 @@ export function consoleSender(log: (m: string) => void = console.log): AlertSend
   };
 }
 
-export interface AlertRunResult { sent: BudgetAlert[]; failed: { alert: BudgetAlert; error: string }[] }
+/** `delivered` is false when no webhook is set: the alerts in `sent` were only recorded in the app. */
+export interface AlertRunResult { sent: BudgetAlert[]; failed: { alert: BudgetAlert; error: string }[]; delivered: boolean }
 
 export async function runBudgetAlerts(db: Db, opts: { thresholds: number[]; sender: AlertSender; webhookConfigured: boolean; dryRun?: boolean }): Promise<AlertRunResult> {
   const pending = pendingAlerts(db, opts.thresholds, opts.webhookConfigured);
-  const result: AlertRunResult = { sent: [], failed: [] };
+  const result: AlertRunResult = { sent: [], failed: [], delivered: opts.webhookConfigured };
   if (opts.dryRun) {
     const top = new Map<string, BudgetAlert>();
     for (const a of pending) if ((top.get(a.projectCode)?.thresholdPct ?? -1) < a.thresholdPct) top.set(a.projectCode, a);
