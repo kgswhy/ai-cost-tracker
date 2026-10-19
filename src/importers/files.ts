@@ -5,9 +5,9 @@ import { config } from "../config";
 export type FileSource = "vendor_a" | "vendor_b" | "manual_ops";
 
 export const SOURCE_FILES: Record<FileSource, { bundled: string; accept: string[]; label: string }> = {
-  vendor_a: { bundled: "vendor_a.csv", accept: [".csv"], label: "Vendor A export (CSV)" },
-  vendor_b: { bundled: "vendor_b.csv", accept: [".csv"], label: "Vendor B export (CSV)" },
-  manual_ops: { bundled: "manual_ops.xlsx", accept: [".xlsx"], label: "Manual ops spreadsheet (XLSX)" },
+  vendor_a: { bundled: "vendor_a.csv", accept: [".csv"], label: "Export Vendor A (CSV)" },
+  vendor_b: { bundled: "vendor_b.csv", accept: [".csv"], label: "Export Vendor B (CSV)" },
+  manual_ops: { bundled: "manual_ops.xlsx", accept: [".xlsx"], label: "Spreadsheet manual (XLSX)" },
 };
 
 export interface ResolvedFile {

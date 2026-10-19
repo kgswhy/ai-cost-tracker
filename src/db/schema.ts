@@ -38,6 +38,13 @@ CREATE TABLE IF NOT EXISTS project_aliases (
   created_at    TEXT NOT NULL
 );
 
+-- Names the ops team checked and decided belong to no project ("test",
+-- "new client pitch"). Their spend stays unassigned but leaves the to-do list.
+CREATE TABLE IF NOT EXISTS reviewed_labels (
+  label       TEXT PRIMARY KEY,   -- normalised like project_aliases.label
+  created_at  TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS import_runs (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   source       TEXT NOT NULL,

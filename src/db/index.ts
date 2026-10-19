@@ -37,6 +37,15 @@ export function addUserAlias(db: Db, label: string, projectCode: string): void {
   ).run(label, projectCode, new Date().toISOString());
 }
 
+export function markLabelReviewed(db: Db, label: string): void {
+  db.prepare(`INSERT INTO reviewed_labels (label, created_at) VALUES (?, ?) ON CONFLICT(label) DO NOTHING`)
+    .run(label, new Date().toISOString());
+}
+
+export function listReviewedLabels(db: Db): { label: string; createdAt: string }[] {
+  return db.prepare(`SELECT label, created_at AS createdAt FROM reviewed_labels ORDER BY created_at DESC`).all() as { label: string; createdAt: string }[];
+}
+
 /**
  * Re-resolves project_code for every record from its stored label. Run after an
  * alias is added so existing records move without a re-import. Returns how

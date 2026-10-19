@@ -1,27 +1,36 @@
 @import "tailwindcss";
 
-/* Neutral base, one action colour, three state colours. Nothing else is coloured. */
+/* Ledger: white paper, black ink, hairlines. One green for "on track", amber and red for budget state, one yellow for "being checked". */
 @theme {
-  --color-ink: #1c1917;
-  --color-ink-muted: #57534e;
-  --color-line: #e7e5e4;
-  --color-paper: #fafaf9;
+  --color-ink: #111111;
+  --color-ink-muted: #555555;
+  --color-line: #dddddd;
+  --color-line-soft: #eeeeee;
+  --color-side: #fafafa;
   --color-card: #ffffff;
-  --color-action: #1e3a8a;
-  --color-action-ink: #ffffff;
-  --color-ok: #15803d;
-  --color-ok-bg: #dcfce7;
-  --color-warn: #b45309;
-  --color-warn-bg: #fef3c7;
-  --color-over: #b91c1c;
-  --color-over-bg: #fee2e2;
+  --color-accent: #0b5d3b;
+  --color-accent-ink: #063b25;
+  --color-ok-bg: #eaf4ee;
+  --color-warn: #b54708;
+  --color-warn-bg: #fef0c7;
+  --color-over: #b42318;
+  --color-over-bg: #fdecea;
+  --color-check: #e9b44c;
+  --color-check-bg: #fef6e7;
+  --color-check-line: #f0d3a0;
+  --color-check-ink: #8a5300;
   --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
-html { font-variant-numeric: tabular-nums; }
-body { background: var(--color-paper); color: var(--color-ink); }
+/* Base styles sit in the base layer so utility classes (text-white on the active nav item) can override them. */
+@layer base {
+  html { font-variant-numeric: tabular-nums; }
+  body { background: var(--color-card); color: var(--color-ink); }
+  a { color: var(--color-accent); }
+  a:hover { color: var(--color-accent-ink); }
+  :focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
+}
 
-:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
-
-/* Grid children default to min-width:auto, which lets a wide table stretch the page instead of scrolling inside it. */
-.grid > * { min-width: 0; }
+/* Grid and flex children default to min-width:auto, which lets a wide table stretch the page instead of scrolling inside it. */
+.grid > *, .min-w-0 { min-width: 0; }

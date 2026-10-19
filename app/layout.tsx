@@ -1,22 +1,26 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
-import { Nav } from "./components/nav";
+import { Sidebar } from "./components/sidebar";
+import { shellData } from "./lib/data";
 
-// Plex Sans: a report typeface with tabular figures, and every number on these pages sits in a column.
-const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex", display: "swap" });
+// Plex Sans for text, Plex Mono for every figure: amounts line up in columns and read like a ledger.
+const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-plex", display: "swap" });
+const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-plex-mono", display: "swap" });
 
 export const metadata: Metadata = {
   title: "AI Production Cost Tracker",
-  description: "Spend against budget per project, across every AI vendor and the manual sheet.",
+  description: "Spend vs budget per proyek dari semua vendor AI dan spreadsheet manual.",
 };
+
+export const dynamic = "force-dynamic";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={plex.variable}>
-      <body className="font-sans min-h-screen">
-        <Nav />
-        <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 sm:px-6">{children}</main>
+    <html lang="id" className={`${plex.variable} ${plexMono.variable}`}>
+      <body className="min-h-screen font-sans lg:flex">
+        <Sidebar data={shellData()} />
+        <main className="min-w-0 flex-1 px-4 pb-16 pt-5 sm:px-6 lg:px-10 lg:pt-7">{children}</main>
       </body>
     </html>
   );
