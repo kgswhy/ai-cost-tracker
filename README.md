@@ -82,7 +82,7 @@ npm run alerts -- --dry-run         # show what would be sent
 npm run alerts -- --reset           # forget sent alerts (useful for demos), then send again
 ```
 
-Each (project, threshold) pair is announced once; it is recorded in `budget_alerts` and not re-sent on the next import. If `ALERT_WEBHOOK_URL` is empty, alerts are recorded as console-delivered, and they are sent again once a webhook is configured.
+Each (project, threshold) pair is announced once; it is recorded in `budget_alerts` and not re-sent on the next import. If no webhook is set, neither on the Budget alert page nor in `ALERT_WEBHOOK_URL`, alerts are only recorded in the app (and printed by the CLI), and they are sent again once a webhook is set.
 
 To watch it locally without a chat tool:
 
@@ -119,12 +119,14 @@ src/                       the core, no framework, used by the CLI and the app
   normalize/               pure functions: time (WIB, week buckets), money, project aliases, csv
   importers/               vendorA, vendorB, vendorC (paginated client with retries), manualOps (xlsx)
                            files.ts picks the uploaded file or the bundled sample; index.ts runs everything
-  db/                      schema, upsert, aliases, dashboard queries
-  alerts/                  threshold evaluation, webhook/console senders, once-per-threshold state
+  db/                      schema, upsert, aliases, dashboard queries; settings.ts holds the webhook set in the app
+  alerts/                  threshold evaluation, claim-before-send state, console sender;
+                           webhook.ts detects Slack/Discord, builds each payload, validates and posts with a timeout
   cli/                     import.ts, alerts.ts
 src/analysis/              pace projection, outlier detection, CSV export: pure functions with their own tests
 app/                       Next.js 15 (App Router): / dashboard, /import, /review, /charges, /alerts, /projects/[code], /export (CSV)
-  actions.ts               server actions: run import, upload/discard a file, link or dismiss a name, check/reset alerts
+  actions.ts               server actions: run import, upload/discard a file, link or dismiss a name, check/reset alerts,
+                           save/test/clear the webhook
   lib/data.ts              one loader per page plus the sidebar's, all reading SQLite on the server
   lib/format.ts            Indonesian number, date and status wording
   components/              sidebar (client, for the phone menu), ledger primitives, forms (client)
@@ -153,7 +155,7 @@ Paths resolve from the repository, not from the folder a command is started in, 
 
 Alerts keep state and run after every import and after every label link. Each threshold crossing is recorded once; a project that passes 80% and 100% in the same run gets a single message for the highest. A failed delivery is not recorded, so it retries on the next run.
 
-Next.js with server components: every page reads SQLite on the server and ships HTML, charts included (they are plain CSS bars); the only client code is the forms and the phone menu. Server actions replace an API layer for the five things a user can do. There is no build step for the CLI, which still runs through tsx.
+Next.js with server components: every page reads SQLite on the server and ships HTML, charts included (they are plain CSS bars); the only client code is the forms and the phone menu. Server actions replace an API layer for everything a user can do: import, uploads, linking or dismissing a name, alert checks, and the webhook setting. There is no build step for the CLI, which still runs through tsx.
 
 Money is integer IDR. Each record is converted and rounded on its own, so every total is a sum of whole rupiah.
 
@@ -170,12 +172,12 @@ Things the brief left open, and what I decided:
 1. Refunds reduce spend. Vendor A refund rows (negative credits with `ref_transaction_id`) are imported as negative records, so budgets reflect net spend and the audit trail keeps both lines.
 2. The "Vendor A" rows in the manual sheet are copies, not extra spend. Every one of them matches a `vendor_a.csv` transaction, by TXN ref where present and otherwise by credits × 160 and date. They are skipped; the CSV is the source of truth for Vendor A. The other vendors in the sheet (Tool D, Stock Footage, Stock Music, Freelance VO) have no other feed and are imported.
 3. Manual-sheet dates are WIB calendar days. The team types them locally, and the rows with a TXN ref confirm it where the UTC time crosses midnight. They are stored as midnight WIB. Vendor timestamps are UTC, as their headers say.
-4. `rnd`, `R&D` and `Internal` mean INT-00 (Internal R&D). `sandbox`, `test`, `misc`, `new client pitch` and blank labels do not clearly belong to a project and are left for the ops team to link on the Review names page rather than guessed.
+4. `rnd`, `R&D` and `Internal` mean INT-00 (Internal R&D). `sandbox`, `test`, `misc`, `new client pitch` and blank labels do not clearly belong to a project and are not guessed: the ops team links each one on the Nama tak dikenal page, or marks it "not a project" so it stops asking.
 5. A repeated Vendor B `line_id` is the same charge. Four lines appear twice, byte for byte, and are imported once.
 6. A repeated invoice number in the sheet is the same expense. There are two cases, such as INV-913 typed twice with different formatting.
 7. Weeks start on Monday, in WIB.
 8. Fixed rates apply to every record, as `rates.json` instructs, regardless of date.
-9. Two Vendor B charges of about $1,000, roughly 15 times the typical line, are imported as they are. They look like data-entry or vendor errors, but nothing in the data justifies dropping them. They are why KMD-02 and SNJ-04 carry most of their spend from Vendor B.
+9. Two Vendor B charges of about $1,000, 20 and 25 times the median for the same product, are imported as they are. They look like data-entry or vendor errors, but nothing in the data justifies dropping them. They are why KMD-02 and SNJ-04 carry most of their spend from Vendor B, and without them KMD-02 would sit at 56% instead of 86%. Both are listed on the Tagihan janggal page and called out on the dashboard so someone checks them against the invoice.
 10. Thresholds are 80% and 100%. The brief asks for 80%; 100% is added because "over budget" is a different conversation from "approaching budget". Both are configurable through `ALERT_THRESHOLDS`.
 11. The weekly vendor exports and the ops sheet are uploaded by the ops team through the Import page. The brief did not say how files arrive, and the background describes a team that exports them by hand each week, so the tool accepts them there; the bundled files in `data/` are the sample for the first run.
 12. The pace projection is deliberately naive: the average of the last four weeks of data, including weeks with no spend, extended in a straight line. Production spend is lumpy and the tool has no schedule to know that, so the page calls it a prompt to check, not a forecast.
@@ -196,8 +198,12 @@ Things the brief left open, and what I decided:
 - Schema migrations are `CREATE TABLE IF NOT EXISTS` plus one additive column check. Fine for a fresh file; a real deployment would use a migration tool.
 - Rates are fixed. Real invoices arrive in USD at a date-specific rate; the model keeps the original amount and currency so dated rates can be applied later.
 - There is no authentication. The app is meant for an internal network; add SSO or at least basic auth before exposing it. Without it, anyone who can open the app can also change where budget alerts are sent.
-- `npm audit` reports PostCSS inside Next.js 15. PostCSS only processes this repository's own CSS at build time, never user input; the fix needs Next 16, a breaking upgrade left for later. Uploads are validated by extension and parsed by the same strict importers, but a hostile file is not something the current checks are designed for.
+- Uploads are checked by extension and parsed by the same strict importers with a patched SheetJS, but there is no file size cap beyond the 20 MB request limit and no malware scanning.
+- `npm audit` reports PostCSS inside Next.js 15. PostCSS only processes this repository's own CSS at build time, never user input; the fix needs Next 16, a breaking upgrade left for later.
+- The import runs only when someone presses it or runs the CLI. A nightly scheduled job (cron, or a queue) is the next step, with the app only reading results.
+- Unusual charges are flagged, not resolved. Marking one "checked, it is real" or "disputed with the vendor" needs a small table and a form; today the flag stays until the data changes.
 - Alerts only fire upward. There is no "back under budget" notice, no digest, and no per-project threshold overrides.
+- No filtering by date range or client on the dashboard yet.
 - Import runs inside the web process. That is fine for a few hundred records; with more sources it should move to a scheduled job, with the app only reading results.
 - Outliers are flagged, not resolved. Marking a charge as "checked, it is real" or "disputed with the vendor" would need a small table and a form; today the list just stays until the data changes.
 - Filtering by date range or client on the dashboard.
