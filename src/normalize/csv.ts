@@ -4,6 +4,27 @@
  * keyed by the header row.
  */
 export function parseCsv(text: string): Record<string, string>[] {
+  return parseCsvTable(text).rows;
+}
+
+/**
+ * Parses a vendor export and refuses it when a column the importer reads is
+ * missing. A wrong or renamed file then fails up front with a message the ops
+ * team can act on, instead of on its first row with an empty value.
+ */
+export function parseExport(text: string, source: string, required: string[]): Record<string, string>[] {
+  const { columns, rows } = parseCsvTable(text);
+  const missing = required.filter((c) => !columns.includes(c));
+  if (missing.length) {
+    throw new Error(
+      `File ${source} tidak punya kolom ${missing.join(", ")}. Pastikan yang diunggah adalah export ${source} yang benar. ` +
+      `Kolom yang dibutuhkan: ${required.join(", ")}.`,
+    );
+  }
+  return rows;
+}
+
+function parseCsvTable(text: string): { columns: string[]; rows: Record<string, string>[] } {
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";
@@ -27,6 +48,7 @@ export function parseCsv(text: string): Record<string, string>[] {
   if (field !== "" || row.length > 0) { row.push(field); rows.push(row); }
 
   const [header, ...body] = rows.filter((r) => !(r.length === 1 && r[0] === ""));
-  if (!header) return [];
-  return body.map((r) => Object.fromEntries(header.map((h, i) => [h.trim(), (r[i] ?? "").trim()])));
+  if (!header) return { columns: [], rows: [] };
+  const columns = header.map((h) => h.trim());
+  return { columns, rows: body.map((r) => Object.fromEntries(columns.map((h, i) => [h, (r[i] ?? "").trim()]))) };
 }

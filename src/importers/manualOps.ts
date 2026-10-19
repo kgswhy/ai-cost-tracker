@@ -27,7 +27,7 @@ export function manualOpsImporter(xlsxPath: string, opts: { automatedVendors?: s
       const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: true, blankrows: false });
 
       const headerIdx = rows.findIndex((r) => String(r[0] ?? "").trim().toLowerCase() === "tanggal");
-      if (headerIdx < 0) throw new Error("manual_ops.xlsx: could not find the 'Tanggal' header row");
+      if (headerIdx < 0) throw new Error("Spreadsheet manual tidak punya baris judul kolom yang diawali Tanggal di sheet pertamanya. Pastikan yang diunggah adalah spreadsheet rekap biaya yang benar, dengan kolom: Tanggal, Project, Tool / Vendor, Keterangan, Nominal, Ref.");
 
       const records: UsageRecord[] = [];
       const seen = new Set<string>();

@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { parseCsv } from "../normalize/csv";
+import { parseExport } from "../normalize/csv";
 import { creditsToIdr } from "../normalize/money";
 import { parseUsSlashUtc } from "../normalize/time";
 import type { UsageRecord } from "../types";
@@ -16,7 +16,7 @@ export function vendorAImporter(csvPath: string): Importer {
     source: "vendor_a",
     label: "Vendor A",
     async run(ctx: ImportContext): Promise<ImportOutput> {
-      const rows = parseCsv(fs.readFileSync(csvPath, "utf8"));
+      const rows = parseExport(fs.readFileSync(csvPath, "utf8"), "Vendor A", ["transaction_id", "timestamp_utc", "project_tag", "model", "job_type", "credits"]);
       const records: UsageRecord[] = [];
       const seen = new Set<string>();
       let skipped = 0;
@@ -26,7 +26,7 @@ export function vendorAImporter(csvPath: string): Importer {
         if (seen.has(id)) { ctx.warn(`Vendor A: duplicate transaction_id ${id} skipped`); skipped++; continue; }
         seen.add(id);
         const credits = Number(row.credits);
-        if (!Number.isFinite(credits)) throw new Error(`Vendor A ${id}: bad credits "${row.credits}"`);
+        if (!Number.isFinite(credits)) throw new Error(`Transaksi ${id} di file Vendor A: kolom credits berisi "${row.credits}", bukan angka. Perbaiki baris itu atau ambil ulang export-nya.`);
         const isRefund = row.job_type === "refund" || credits < 0;
         records.push({
           source: "vendor_a",

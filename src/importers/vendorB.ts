@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { parseCsv } from "../normalize/csv";
+import { parseExport } from "../normalize/csv";
 import { parseUsdAmount, usdToIdr } from "../normalize/money";
 import { parseDmyDashUtc } from "../normalize/time";
 import type { UsageRecord } from "../types";
@@ -15,7 +15,7 @@ export function vendorBImporter(csvPath: string): Importer {
     source: "vendor_b",
     label: "Vendor B",
     async run(ctx: ImportContext): Promise<ImportOutput> {
-      const rows = parseCsv(fs.readFileSync(csvPath, "utf8"));
+      const rows = parseExport(fs.readFileSync(csvPath, "utf8"), "Vendor B", ["line_id", "time_utc", "workspace", "product", "usd_amount"]);
       const records: UsageRecord[] = [];
       const seen = new Map<string, number>();
       let skipped = 0;

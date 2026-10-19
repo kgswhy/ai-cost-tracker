@@ -46,8 +46,8 @@ export function saveUpload(source: FileSource, originalName: string, bytes: Buff
   if (!isFileSource(source)) throw new Error(`Unknown source "${String(source)}"`);
   const meta = SOURCE_FILES[source];
   const ext = path.extname(originalName).toLowerCase();
-  if (!meta.accept.includes(ext)) throw new Error(`${meta.label} must be ${meta.accept.join(" or ")}, got "${originalName}"`);
-  if (bytes.length === 0) throw new Error(`${originalName} is empty`);
+  if (!meta.accept.includes(ext)) throw new Error(`${meta.label} harus file ${meta.accept.join(" atau ")}, sedangkan yang dipilih "${originalName}". Pilih file export yang benar.`);
+  if (bytes.length === 0) throw new Error(`${originalName} kosong. Pilih file lain.`);
   fs.mkdirSync(uploadPath(""), { recursive: true });
   const target = uploadPath(meta.bundled);
   fs.writeFileSync(target, bytes);

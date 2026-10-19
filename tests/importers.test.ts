@@ -133,3 +133,27 @@ describe("Vendor C client", () => {
     await expect(fetchAllVendorCUsage({ baseUrl: "http://x", apiKey: "k", maxAttempts: 3, fetchImpl: api.fetchImpl, sleep })).rejects.toThrow(/after 3 attempts/);
   });
 });
+
+describe("wrong files fail with a message the ops team can act on", () => {
+  it("names the missing Vendor A column instead of failing on the first row", async () => {
+    const p = tmp("a.csv", "transaction_id,timestamp_utc,project_tag,model,job_type,jumlah_kredit\nT1,09/01/2026 03:16,greenbox,m,image,5\n");
+    await expect(vendorAImporter(p).run(ctx())).rejects.toThrow(
+      "File Vendor A tidak punya kolom credits. Pastikan yang diunggah adalah export Vendor A yang benar. " +
+      "Kolom yang dibutuhkan: transaction_id, timestamp_utc, project_tag, model, job_type, credits.",
+    );
+  });
+  it("refuses a Vendor A file uploaded into the Vendor B slot", async () => {
+    const p = tmp("b.csv", "transaction_id,timestamp_utc,project_tag,model,job_type,credits\nT1,09/01/2026 03:16,greenbox,m,image,5\n");
+    await expect(vendorBImporter(p).run(ctx())).rejects.toThrow("File Vendor B tidak punya kolom line_id, time_utc, workspace, product, usd_amount.");
+  });
+  it("points at the transaction when a credits value is not a number", async () => {
+    const p = tmp("a.csv", "transaction_id,timestamp_utc,project_tag,model,job_type,credits\nT9,09/01/2026 03:16,greenbox,m,image,abc\n");
+    await expect(vendorAImporter(p).run(ctx())).rejects.toThrow('Transaksi T9 di file Vendor A: kolom credits berisi "abc", bukan angka.');
+  });
+  it("explains a spreadsheet without the Tanggal header row", async () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Date", "Project"], ["2026-09-01", "greenbox"]]), "Sheet1");
+    const p = tmp("m.xlsx", XLSX.write(wb, { type: "buffer", bookType: "xlsx" }));
+    await expect(manualOpsImporter(p).run(ctx())).rejects.toThrow("Spreadsheet manual tidak punya baris judul kolom yang diawali Tanggal");
+  });
+});

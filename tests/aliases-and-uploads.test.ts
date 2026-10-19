@@ -52,8 +52,8 @@ describe("uploaded source files", () => {
   it("prefers the latest upload, validates the extension, and can fall back to the bundled file", async () => {
     const files = await import("../src/importers/files");
     expect(files.resolveSourceFile("vendor_a")).toMatchObject({ origin: "bundled", fileName: "vendor_a.csv" });
-    expect(() => files.saveUpload("vendor_a", "export.xlsx", Buffer.from("x"))).toThrow(/must be .csv/);
-    expect(() => files.saveUpload("vendor_a", "export.csv", Buffer.alloc(0))).toThrow(/empty/);
+    expect(() => files.saveUpload("vendor_a", "export.xlsx", Buffer.from("x"))).toThrow('Export Vendor A (CSV) harus file .csv, sedangkan yang dipilih "export.xlsx". Pilih file export yang benar.');
+    expect(() => files.saveUpload("vendor_a", "export.csv", Buffer.alloc(0))).toThrow("export.csv kosong. Pilih file lain.");
     const saved = files.saveUpload("vendor_a", "week-41.csv", Buffer.from("uploaded"));
     expect(saved).toMatchObject({ origin: "uploaded", fileName: "week-41.csv" });
     expect(fs.readFileSync(saved.path, "utf8")).toBe("uploaded");
