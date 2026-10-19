@@ -10,8 +10,8 @@ jobs:
     name: Typecheck and unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -27,8 +27,8 @@ jobs:
       VENDOR_C_API_KEY: vc_test_7Kq2mX9pL4   # test key of the bundled mock, documented in docs/vendor_c_api.md
       DATABASE_PATH: ./ci.db
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
