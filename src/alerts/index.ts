@@ -1,6 +1,7 @@
 import type { Db } from "../db/index";
 import { projectSpend, type ProjectSpend } from "../db/queries";
 import { formatIdr } from "../normalize/money";
+import { buildPayload, detectProvider, postWebhook } from "./webhook";
 
 export interface BudgetAlert {
   projectCode: string;
@@ -13,7 +14,7 @@ export interface BudgetAlert {
 }
 
 export interface AlertSender {
-  /** Returns the delivery channel used, e.g. "webhook" or "console". */
+  /** Returns the delivery channel used: "slack", "discord", "webhook" or "console". */
   send(alert: BudgetAlert): Promise<string>;
 }
 
@@ -26,7 +27,7 @@ export interface AlertSender {
 export function pendingAlerts(db: Db, thresholds: number[], webhookConfigured: boolean): BudgetAlert[] {
   const delivered = new Set(
     (db.prepare(`SELECT project_code AS code, threshold_pct AS t, delivery FROM budget_alerts`).all() as { code: string; t: number; delivery: string }[])
-      .filter((r) => !webhookConfigured || r.delivery === "webhook")
+      .filter((r) => !webhookConfigured || r.delivery !== "console")
       .map((r) => `${r.code}|${r.t}`),
   );
   const out: BudgetAlert[] = [];
@@ -58,22 +59,13 @@ export function formatAlertMessage(a: BudgetAlert): string {
   ].join("\n");
 }
 
-/**
- * Posts to a JSON webhook. The same text goes in `content` and `text`, the two
- * field names common chat webhooks read, plus a structured `alert` object for
- * a mock endpoint or any other consumer.
- */
+/** Posts each alert in the format of the tool the URL belongs to (Slack, Discord, or a generic JSON body). */
 export function webhookSender(url: string, fetchImpl: typeof fetch = fetch): AlertSender {
+  const provider = detectProvider(url);
   return {
     async send(alert) {
-      const message = formatAlertMessage(alert);
-      const res = await fetchImpl(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: message, text: message, alert }),
-      });
-      if (!res.ok) throw new Error(`Webhook responded ${res.status} ${await res.text().catch(() => "")}`);
-      return "webhook";
+      await postWebhook(url, buildPayload(provider, formatAlertMessage(alert), alert), fetchImpl);
+      return provider === "generic" ? "webhook" : provider;
     },
   };
 }

@@ -45,6 +45,13 @@ CREATE TABLE IF NOT EXISTS reviewed_labels (
   created_at  TEXT NOT NULL
 );
 
+-- Settings changed from the app, such as the alert webhook URL. Not in git; .env holds the defaults.
+CREATE TABLE IF NOT EXISTS settings (
+  key         TEXT PRIMARY KEY,
+  value       TEXT NOT NULL,
+  updated_at  TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS import_runs (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   source       TEXT NOT NULL,

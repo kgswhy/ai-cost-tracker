@@ -11,6 +11,8 @@ import { loadReferenceData } from "@/src/importers/index";
 import { resolveSourceFile, SOURCE_FILES, type FileSource } from "@/src/importers/files";
 import { formatAlertMessage, pendingAlerts } from "@/src/alerts/index";
 import { normalizeLabel } from "@/src/normalize/project";
+import { configuredWebhook } from "@/src/alerts/run";
+import { detectProvider, maskWebhookUrl } from "@/src/alerts/webhook";
 
 export type Outlier = ExportRow & { verdict: OutlierVerdict };
 
@@ -51,7 +53,7 @@ function projectsWithPace(db: Db, outliers: Outlier[]) {
 export function shellData() {
   const db = getDb();
   const runs = latestImportRuns(db);
-  const webhook = Boolean(config.alerts.webhookUrl);
+  const webhook = Boolean(configuredWebhook(db));
   const projects = projectSpend(db);
   return {
     thresholds: config.alerts.thresholds,
@@ -154,7 +156,8 @@ export function reviewPageData() {
 
 export function alertsPageData(selected?: string) {
   const db = getDb();
-  const webhook = config.alerts.webhookUrl;
+  const hook = configuredWebhook(db);
+  const webhook = hook?.url ?? "";
   const sent = recentAlerts(db).map((a) => {
     const p = projectSpend(db).find((x) => x.code === a.projectCode);
     const message = formatAlertMessage({
@@ -166,6 +169,9 @@ export function alertsPageData(selected?: string) {
   return {
     thresholds: config.alerts.thresholds,
     webhookConfigured: Boolean(webhook),
+    // Only the host and the last characters leave the server: the full URL is a secret.
+    webhook: hook ? { provider: detectProvider(hook.url), masked: maskWebhookUrl(hook.url), origin: hook.origin } : null,
+    envFallback: Boolean(config.alerts.webhookUrl),
     pending: pendingAlerts(db, config.alerts.thresholds, Boolean(webhook)),
     sent,
     current: sent.find((a) => a.key === selected) ?? sent[0] ?? null,

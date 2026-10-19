@@ -51,7 +51,7 @@ Run it as often as you like. A record is identified by its source and vendor-sid
 
 ### Alerts
 
-When a project's spend crosses a threshold (default 80%, plus 100%), one message is posted to `ALERT_WEBHOOK_URL` stating the project, current spend, budget and percentage used:
+When a project's spend crosses a threshold (default 80%, plus 100%), one message is posted to the team's webhook stating the project, current spend, budget and percentage used:
 
 ```
 Peringatan budget (80%): KMD-02 Kopi Malam Mini Drama S1 (Kopi Malam)
@@ -60,7 +60,15 @@ Budget: Rp 56.000.000
 Budget terpakai: 86,0%
 ```
 
-The JSON body carries that text as both `content` and `text`, the field names common chat webhooks read, plus a structured `alert` object for any other consumer, so the same URL works for a chat tool or a mock endpoint.
+**Slack or Discord.** Paste the webhook URL on the Budget alert page (or set `ALERT_WEBHOOK_URL` in `.env`). The app tells the tool from the URL and sends each one its own format:
+
+| URL | Sent as |
+|---|---|
+| `https://hooks.slack.com/services/...` | Slack: `{ "text" }`, first line bold in mrkdwn, `& < >` escaped |
+| `https://discord.com/api/webhooks/...` | Discord: `{ "content", "username", "allowed_mentions": { "parse": [] } }`, first line bold, no one pinged |
+| anything else (a mock, another service) | `{ "content", "text", "alert" }` with the structured alert |
+
+A URL saved on the page is stored in the local database and wins over `.env`; removing it falls back to `.env`. The page only ever shows the host and the last four characters, never the full URL, because a webhook URL works like a password. **Kirim pesan uji** posts a test message so the team can see it arrive before the first real alert. Slack and Discord payloads are covered by unit tests; they have not been tried against a live workspace from this repo.
 
 Alerts are evaluated automatically at the end of every import and after a name is linked, from the Budget alert page, or from the command line:
 
@@ -121,7 +129,7 @@ tools/mock-webhook.mjs         local webhook receiver for demos
 tests/                         vitest
 ```
 
-**Data model.** `usage_records` holds one row per spend line with the original amount and currency, the IDR amount, UTC and WIB timestamps, the Monday of its WIB week, the label the user typed and the project it resolved to. `projects`, `project_aliases`, `reviewed_labels` (names marked "not a project"), `import_runs` and `budget_alerts` are the supporting tables. Refunds are negative rows that reference the original charge.
+**Data model.** `usage_records` holds one row per spend line with the original amount and currency, the IDR amount, UTC and WIB timestamps, the Monday of its WIB week, the label the user typed and the project it resolved to. `projects`, `project_aliases`, `reviewed_labels` (names marked "not a project"), `settings` (the webhook URL set in the app), `import_runs` and `budget_alerts` are the supporting tables. Refunds are negative rows that reference the original charge.
 
 ### Key design decisions
 
@@ -181,7 +189,7 @@ Things the brief left open, and what I decided:
 - Spreadsheet identity is content-based. Editing a sheet row changes its id; the snapshot pruning removes the old row, but alert history and `first_seen_at` for that row start over. The fix is an id column in the sheet, or better, a small form on the dashboard that writes straight to the database so the sheet goes away.
 - Schema migrations are `CREATE TABLE IF NOT EXISTS` plus one additive column check. Fine for a fresh file; a real deployment would use a migration tool.
 - Rates are fixed. Real invoices arrive in USD at a date-specific rate; the model keeps the original amount and currency so dated rates can be applied later.
-- There is no authentication. The app is meant for an internal network; add SSO or at least basic auth before exposing it. Uploads are validated by extension and parsed by the same strict importers, but a hostile file is not something the current checks are designed for.
+- There is no authentication. The app is meant for an internal network; add SSO or at least basic auth before exposing it. Without it, anyone who can open the app can also change where budget alerts are sent. Uploads are validated by extension and parsed by the same strict importers, but a hostile file is not something the current checks are designed for.
 - Alerts only fire upward. There is no "back under budget" notice, no digest, and no per-project threshold overrides.
 - Import runs inside the web process. That is fine for a few hundred records; with more sources it should move to a scheduled job, with the app only reading results.
 - Outliers are flagged, not resolved. Marking a charge as "checked, it is real" or "disputed with the vendor" would need a small table and a form; today the list just stays until the data changes.

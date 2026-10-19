@@ -72,6 +72,30 @@ export function UploadForm({ source, label, accept, action }: {
   );
 }
 
+/** URL field for the alert webhook. The saved URL is never sent back to the browser, so the field starts empty. */
+export function WebhookForm({ action, hasUrl }: { action: (prev: ActionResult | null, form: FormData) => Promise<ActionResult>; hasUrl: boolean }) {
+  const [result, formAction, pending] = useActionState(action, null);
+  return (
+    <form action={formAction} className="space-y-2">
+      <label htmlFor="webhook-url" className="block text-sm font-medium">{hasUrl ? "Ganti URL webhook" : "URL webhook Slack atau Discord"}</label>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          id="webhook-url"
+          name="url"
+          type="url"
+          required
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="https://hooks.slack.com/services/... atau https://discord.com/api/webhooks/..."
+          className="min-h-11 min-w-0 flex-[1_1_360px] border border-[#999999] bg-card px-3 font-mono text-[13px] text-ink placeholder:font-sans placeholder:text-ink-muted"
+        />
+        <button type="submit" className={btn} disabled={pending}>{pending ? "Menyimpan" : "Simpan"}</button>
+      </div>
+      <ResultNotice result={result} />
+    </form>
+  );
+}
+
 export function LinkLabelForm({ label, projects, action }: {
   label: string; projects: { code: string; name: string }[]; action: (prev: ActionResult | null, form: FormData) => Promise<ActionResult>;
 }) {

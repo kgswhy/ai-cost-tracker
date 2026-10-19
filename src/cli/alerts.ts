@@ -1,7 +1,8 @@
 import { config } from "../config";
 import { openDatabase } from "../db/index";
 import { formatAlertMessage, resetAlerts } from "../alerts/index";
-import { runConfiguredAlerts } from "../alerts/run";
+import { configuredWebhook, runConfiguredAlerts } from "../alerts/run";
+import { detectProvider, maskWebhookUrl, PROVIDER_LABEL } from "../alerts/webhook";
 
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
@@ -11,7 +12,10 @@ if (args.includes("--reset")) {
   console.log(`Cleared ${resetAlerts(db)} recorded alert(s); they will be sent again on the next run.`);
 }
 
-const target = config.alerts.webhookUrl ? `webhook ${config.alerts.webhookUrl}` : "console (ALERT_WEBHOOK_URL not set)";
+const hook = configuredWebhook(db);
+const target = hook
+  ? `${PROVIDER_LABEL[detectProvider(hook.url)]} ${maskWebhookUrl(hook.url)} (${hook.origin === "web" ? "set in the app" : "from .env"})`
+  : "console (no webhook set in the app or in ALERT_WEBHOOK_URL)";
 console.log(`Thresholds: ${config.alerts.thresholds.join("%, ")}% · delivery: ${target}${dryRun ? " · DRY RUN" : ""}`);
 
 const result = await runConfiguredAlerts(db, { dryRun });
