@@ -130,3 +130,20 @@ export function importRunHistory(db: Db, limit = 40): (ImportRunRow & { warnings
   ).all(limit) as (ImportRunRow & { warnings: string | null })[];
   return rows.map((r) => ({ ...r, warnings: r.warnings ? (JSON.parse(r.warnings) as string[]) : [] }));
 }
+
+/** Monday of the most recent WIB week with any record, across every project. */
+export function latestWeekStart(db: Db): string | null {
+  const row = db.prepare(`SELECT MAX(week_start_wib) AS w FROM usage_records`).get() as { w: string | null };
+  return row.w;
+}
+
+export type ExportRow = RecordRow & { projectCode: string | null; occurredAtUtc: string; weekStartWib: string };
+
+export function allRecords(db: Db, projectCode?: string): ExportRow[] {
+  return db.prepare(
+    `SELECT id, source, external_id AS externalId, vendor, item, project_label AS projectLabel, project_code AS projectCode,
+            occurred_at_utc AS occurredAtUtc, occurred_at_wib AS occurredAtWib, week_start_wib AS weekStartWib,
+            original_amount AS originalAmount, original_currency AS originalCurrency, amount_idr AS amountIdr, refund_of AS refundOf
+     FROM usage_records WHERE (@code IS NULL OR project_code = @code) ORDER BY occurred_at_utc DESC`,
+  ).all({ code: projectCode ?? null }) as ExportRow[];
+}

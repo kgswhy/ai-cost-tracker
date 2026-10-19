@@ -32,7 +32,7 @@ The navigation follows the order the ops team works in:
 
 1. **Import.** Shows which file each source reads: the bundled sample from `data/`, or the latest file uploaded on this page. Upload this week's Vendor A and Vendor B exports and the ops sheet, then run the import. Vendor C is pulled from its API. Every run is logged per source with what it inserted, updated, left unchanged, skipped and why.
 2. **Review labels.** Records whose project label matched nothing are grouped by the label as typed, with amount and sources. Pick the project once; the alias is stored, every record with that label moves immediately, and future imports use it too. Blank labels cannot be linked and are marked "fix at the source".
-3. **Dashboard.** Spend vs budget per project with the budget bar and status, spend by tool/vendor, weekly spend, and a "needs attention" panel linking to projects above a threshold and to unlinked records. Each project opens a detail page with its vendor split, weekly spend and every record, refunds included.
+3. **Dashboard.** Spend vs budget per project, most urgent first, with the budget bar, status and an "at this pace" projection (a straight line from the average of the last four weeks of data: how many weeks until the budget runs out, or how far over it already is). Spend by tool/vendor, weekly spend, and a "needs attention" panel linking to projects above a threshold, to unlinked records, and to unusually large charges (at least 8 times the median for the same vendor and item, so a video render is never compared with an image job). Each project opens a detail page with its pace, vendor split, weekly spend and every record, refunds and flagged charges included. Every table of records can be downloaded as CSV for finance, all projects or one.
 4. **Alerts.** Thresholds and delivery target, projects currently above a threshold, a manual "check and send", and the history of what the webhook received.
 
 ### Import from the command line
@@ -98,7 +98,8 @@ src/                       the core, no framework, used by the CLI and the app
   db/                      schema, upsert, aliases, dashboard queries
   alerts/                  threshold evaluation, webhook/console senders, once-per-threshold state
   cli/                     import.ts, alerts.ts
-app/                       Next.js 15 (App Router): / dashboard, /projects/[code], /import, /review, /alerts
+src/analysis/              pace projection, outlier detection, CSV export: pure functions with their own tests
+app/                       Next.js 15 (App Router): / dashboard, /projects/[code], /import, /review, /alerts, /export (CSV)
   actions.ts               server actions: run import, upload/discard a file, link a label, check/reset alerts
   lib/data.ts              one loader per page, all reading SQLite directly on the server
   components/              nav, tables, budget bar, forms (client), charts (Recharts, client)
@@ -150,6 +151,8 @@ Things the brief left open, and what I decided:
 9. Two Vendor B charges of about $1,000, roughly 15 times the typical line, are imported as they are. They look like data-entry or vendor errors, but nothing in the data justifies dropping them. They are why KMD-02 and SNJ-04 carry most of their spend from Vendor B.
 10. Thresholds are 80% and 100%. The brief asks for 80%; 100% is added because "over budget" is a different conversation from "approaching budget". Both are configurable through `ALERT_THRESHOLDS`.
 11. The weekly vendor exports and the ops sheet are uploaded by the ops team through the Import page. The brief did not say how files arrive, and the background describes a team that exports them by hand each week, so the tool accepts them there; the bundled files in `data/` are the sample for the first run.
+12. The pace projection is deliberately naive: the average of the last four weeks of data, including weeks with no spend, extended in a straight line. Production spend is lumpy and the tool has no schedule to know that, so the page calls it a prompt to check, not a forecast.
+13. An "unusually large" charge is one at least 8 times the median of charges with the same vendor and item, with at least five such charges to compare against. The two $1,000 Vendor B lines are the reason this exists; they stay in the totals and are listed for a human to check.
 
 ### Data quirks handled
 
@@ -168,8 +171,8 @@ Things the brief left open, and what I decided:
 - There is no authentication. The app is meant for an internal network; add SSO or at least basic auth before exposing it. Uploads are validated by extension and parsed by the same strict importers, but a hostile file is not something the current checks are designed for.
 - Alerts only fire upward. There is no "back under budget" notice, no digest, and no per-project threshold overrides.
 - Import runs inside the web process. That is fine for a few hundred records; with more sources it should move to a scheduled job, with the app only reading results.
-- Outlier detection would be cheap and useful: flag records far above the median for their vendor (the two $1,000 Vendor B lines) and show them for review.
-- Filtering by date range or client, and a CSV export of the normalised records for finance.
+- Outliers are flagged, not resolved. Marking a charge as "checked, it is real" or "disputed with the vendor" would need a small table and a form; today the list just stays until the data changes.
+- Filtering by date range or client on the dashboard.
 
 ## Notes on the provided materials
 

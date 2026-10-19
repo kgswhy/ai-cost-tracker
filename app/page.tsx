@@ -2,7 +2,7 @@ import Link from "next/link";
 import { StackedBars, type Row, type Series } from "./components/charts";
 import { Badge, BudgetBar, ButtonLink, Empty, PageTitle, Section, Table } from "./components/ui";
 import { dashboardData } from "./lib/data";
-import { idr, pct, PROJECT_COLOURS, signedIdr, statusOf, UNASSIGNED_COLOUR, weekLabel } from "./lib/format";
+import { idr, paceText, pct, PROJECT_COLOURS, signedIdr, SOURCE_LABEL, statusOf, UNASSIGNED_COLOUR, weekLabel } from "./lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +11,10 @@ export default function DashboardPage() {
   const hasData = d.totals.recordCount > 0;
   const warnAt = d.thresholds.filter((t) => t < 100);
 
+  // Colour follows the project's position in projects.csv order, not the urgency sort, so it stays stable across pages.
+  const colourIndex = [...d.projects].sort((a, b) => a.code.localeCompare(b.code)).map((p) => p.code);
   const series: Series[] = [
-    ...d.projects.map((p, i) => ({ key: p.code, label: p.code, colour: PROJECT_COLOURS[i % PROJECT_COLOURS.length] })),
+    ...colourIndex.map((code, i) => ({ key: code, label: code, colour: PROJECT_COLOURS[i % PROJECT_COLOURS.length] })),
     { key: "__unassigned", label: "Unassigned", colour: UNASSIGNED_COLOUR },
   ];
   const keyOf = (code: string | null) => code ?? "__unassigned";
@@ -40,11 +42,11 @@ export default function DashboardPage() {
         lede={hasData
           ? <><strong className="text-ink">{idr(d.totals.spendIdr)}</strong> spent of {idr(d.totals.budgetIdr)} across all projects ({pct(totalPct)}). All amounts in IDR, times in WIB.</>
           : "All amounts in IDR, times in WIB."}
-        action={!hasData ? <ButtonLink href="/import">Import the data</ButtonLink> : undefined}
+        action={!hasData ? <ButtonLink href="/import">Import the data</ButtonLink> : <a href="/export" className="text-sm underline underline-offset-2">Download all records (CSV)</a>}
       />
 
-      {hasData && (attention.length > 0 || d.unassignedCount > 0) ? (
-        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+      {hasData && (attention.length > 0 || d.unassignedCount > 0 || d.outliers.length > 0) ? (
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {attention.length > 0 ? (
             <div className="rounded-lg border border-line bg-card p-4 text-sm">
               <p className="font-semibold">{attention.length} project(s) need attention</p>
@@ -60,13 +62,20 @@ export default function DashboardPage() {
               <Link className="mt-2 inline-block underline" href="/review">Review labels</Link>
             </div>
           ) : null}
+          {d.outliers.length > 0 ? (
+            <div className="rounded-lg border border-line bg-card p-4 text-sm">
+              <p className="font-semibold">{d.outliers.length} unusually large charge(s)</p>
+              <p className="mt-1 text-ink-muted">{idr(d.outliers.reduce((s, r) => s + r.amountIdr, 0))} in charges at least 8 times the usual amount for their vendor and item. Worth a look before anyone acts on the budgets.</p>
+              <a className="mt-2 inline-block underline" href="#unusual">See them</a>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
       <div className="grid gap-5">
-        <Section title="Spend vs budget per project" hint={<>Warning at {warnAt.join("% and ")}%, over budget at 100%. The tracker posts an alert to the webhook when a project crosses a threshold. Open a project for its records.</>}>
+        <Section title="Spend vs budget per project" hint={<>Most urgent first. Warning at {warnAt.join("% and ")}%, over budget at 100%; the tracker posts an alert to the webhook when a project crosses a threshold. "At this pace" is a straight line from the average of the last four weeks of data. Open a project for its records.</>}>
           <Table label="Spend vs budget per project">
-            <thead><tr><th>Project</th><th>Client</th><th className="text-right">Spend</th><th className="text-right">Budget</th><th className="text-right">Used</th><th className="w-[28%]">Budget used</th><th>Status</th></tr></thead>
+            <thead><tr><th>Project</th><th>Client</th><th className="text-right">Spend</th><th className="text-right">Budget</th><th className="text-right">Used</th><th className="w-[22%]">Budget used</th><th>Status</th><th>At this pace</th></tr></thead>
             <tbody>
               {d.projects.map((p) => { const s = statusOf(p.pctUsed, d.thresholds); return (
                 <tr key={p.code}>
@@ -77,6 +86,7 @@ export default function DashboardPage() {
                   <td className="text-right font-semibold">{pct(p.pctUsed)}</td>
                   <td><BudgetBar pctUsed={p.pctUsed} status={s} /></td>
                   <td><Badge status={s} /></td>
+                  <td className="text-ink-muted">{paceText(p.pace)}</td>
                 </tr>); })}
             </tbody>
           </Table>
@@ -104,6 +114,23 @@ export default function DashboardPage() {
               </div>
             </Section>
           </div>
+        ) : null}
+
+        {hasData && d.outliers.length > 0 ? (
+          <Section id="unusual" title={`Unusually large charges (${d.outliers.length})`} hint="Charges at least 8 times the median for the same vendor and item, compared across every project. They are counted in the budgets above; this list exists so someone checks them against the vendor invoice.">
+            <Table label="Unusually large charges">
+              <thead><tr><th>When (WIB)</th><th>Project</th><th>Vendor</th><th>Item</th><th className="text-right">Amount</th><th className="text-right">Usual amount</th><th>Source</th></tr></thead>
+              <tbody>{d.outliers.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.occurredAtWib}</td>
+                  <td>{r.projectCode ? <Link href={`/projects/${r.projectCode}`} className="underline">{r.projectCode}</Link> : <span className="text-ink-muted">not linked</span>}</td>
+                  <td>{r.vendor}</td><td>{r.item}</td>
+                  <td className="text-right font-semibold">{idr(r.amountIdr)}</td>
+                  <td className="text-right text-ink-muted">{idr(r.verdict.medianIdr ?? 0)} ({Math.round(r.verdict.ratio ?? 0)}x)</td>
+                  <td>{SOURCE_LABEL[r.source] ?? r.source}</td>
+                </tr>))}</tbody>
+            </Table>
+          </Section>
         ) : null}
       </div>
     </>
