@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../config";
-import { finishImportRun, failImportRun, listUserAliases, openDatabase, removeStaleRecords, startImportRun, upsertProjects, upsertUsageRecords, type Db } from "../db/index";
+import { countRecords, finishImportRun, failImportRun, listUserAliases, openDatabase, removeStaleRecords, startImportRun, upsertProjects, upsertUsageRecords, type Db } from "../db/index";
 import { resolveSourceFile } from "./files";
 import { createProjectResolver, loadAliases, loadProjectsCsv } from "../normalize/project";
 import type { Rates } from "../types";
@@ -64,6 +64,10 @@ export async function runImport(opts: { db?: Db; importers?: Importer[]; only?: 
     const runId = startImportRun(db, importer.source);
     try {
       const out = await importer.run(ctx);
+      // A full snapshot replaces what is stored, so an empty one would wipe the source; treat it as a bad file instead.
+      if (importer.fullSnapshot && out.records.length === 0 && countRecords(db, importer.source) > 0) {
+        throw new Error(`${importer.label} tidak berisi satu pun baris pengeluaran, jadi data lama tidak dihapus. Periksa apakah file dan sheet pertamanya benar.`);
+      }
       const stats = upsertUsageRecords(db, out.records);
       const removed = importer.fullSnapshot ? removeStaleRecords(db, importer.source, out.records.map((r) => r.externalId)) : 0;
       const result = { ...stats, fetched: out.fetched, skipped: out.skipped, removed, warnings };

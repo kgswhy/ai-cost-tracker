@@ -15,9 +15,13 @@ const COLUMNS: [string, (r: ExportRow) => string | number | null][] = [
   ["external_id", (r) => r.externalId],
 ];
 
+// Spreadsheet apps run a text cell that starts with one of these as a formula. Names and items
+// are typed by people in vendor tools, so a leading apostrophe keeps them as plain text.
+const FORMULA_START = /^[=+\-@\t\r]/;
+
 function cell(v: string | number | null): string {
   if (v === null || v === undefined) return "";
-  const s = String(v);
+  const s = typeof v === "string" && FORMULA_START.test(v) ? `'${v}` : String(v);
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
