@@ -1,11 +1,15 @@
 import { runImport } from "../importers/index.js";
 import { config } from "../config.js";
+import { openDatabase } from "../db/index.js";
+import { formatAlertMessage } from "../alerts/index.js";
+import { runConfiguredAlerts } from "../alerts/run.js";
 
 const only = process.argv.slice(2).filter((a) => !a.startsWith("-"));
 const verbose = process.argv.includes("--verbose") || process.argv.includes("-v");
 
 console.log(`Importing into ${config.databasePath}${only.length ? ` (only: ${only.join(", ")})` : ""}`);
-const summaries = await runImport({ only: only.length ? only : undefined });
+const db = openDatabase(config.databasePath);
+const summaries = await runImport({ db, only: only.length ? only : undefined });
 
 for (const s of summaries) {
   if (s.status === "failed") {
@@ -22,4 +26,12 @@ for (const s of summaries) {
 }
 
 const failed = summaries.filter((s) => s.status === "failed").length;
+
+if (!process.argv.includes("--no-alerts")) {
+  const alerts = await runConfiguredAlerts(db);
+  if (alerts.sent.length || alerts.failed.length) console.log("");
+  for (const a of alerts.sent) console.log(`🔔 ${formatAlertMessage(a).replace(/\n/g, " | ")}`);
+  for (const f of alerts.failed) console.log(`✗ alert ${f.alert.projectCode} @${f.alert.thresholdPct}% failed: ${f.error}`);
+}
+
 process.exitCode = failed > 0 ? 1 : 0;
