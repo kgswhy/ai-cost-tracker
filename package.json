@@ -11,6 +11,7 @@
     "mock:vendor-c": "node vendor-c-mock/server.js",
     "import": "tsx src/cli/import.ts",
     "alerts": "tsx src/cli/alerts.ts",
+    "mock:webhook": "node tools/mock-webhook.mjs",
     "dev": "tsx watch src/web/server.ts",
     "start": "tsx src/web/server.ts",
     "test": "vitest run",
